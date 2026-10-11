@@ -544,6 +544,48 @@ async function runTests() {
   const nonExistRouteRes = await request("GET", "/api/trips/R-NONEXISTENT/route", { Cookie: adminCookie });
   assert(nonExistRouteRes.status === 404, "Requesting route for non-existent trip returns 404 Not Found");
 
+  // 6. Cache hit regression check: second route call MUST retain origin.name & destination.name
+  const cachedRouteRes = await request("GET", "/api/trips/R-201/route", { Cookie: empCookie });
+  assert(cachedRouteRes.status === 200, "Cached trip route returns 200 OK");
+  assert(
+    cachedRouteRes.data && cachedRouteRes.data.data &&
+    cachedRouteRes.data.data.origin && cachedRouteRes.data.data.origin.name === "Hyderabad" &&
+    cachedRouteRes.data.data.destination && cachedRouteRes.data.data.destination.name === "Vijayawada",
+    "Cached route retains origin and destination objects with valid .name properties"
+  );
+
+  // 7. Retry cache bypass: ?retry=true bypasses cache and recalculates route
+  const retryRouteRes = await request("GET", "/api/trips/R-201/route?retry=true", { Cookie: empCookie });
+  assert(retryRouteRes.status === 200, "Retry route with ?retry=true returns 200 OK");
+  assert(
+    retryRouteRes.data && retryRouteRes.data.data && retryRouteRes.data.data.origin &&
+    retryRouteRes.data.data.origin.name === "Hyderabad",
+    "Retry route successfully recalculates and returns valid origin"
+  );
+
+  // 8. Trip with unresolvable/missing coordinates: returns clean available: false and non-technical message
+  const sampleTrip = await Trip.findOne({ id: "R-201" });
+  const unresolvableTrip = await Trip.create({
+    organizationId: sampleTrip.organizationId,
+    id: "R-TEST-UNRESOLVABLE",
+    vehicleId: "FL-101",
+    driverId: "",
+    start: "NonexistentUnknownTownA",
+    end: "NonexistentUnknownTownB",
+    distance: 120,
+    duration: "2h 30m",
+    status: "On Time"
+  });
+  const unresolvableRes = await request("GET", `/api/trips/${unresolvableTrip.id}/route`, { Cookie: adminCookie });
+  assert(unresolvableRes.status === 200, "Trip with unresolvable coordinates returns 200 OK");
+  assert(
+    unresolvableRes.data.data.available === false &&
+    unresolvableRes.data.data.message === "Route coordinates are unavailable for this trip." &&
+    Array.isArray(unresolvableRes.data.data.coordinates) && unresolvableRes.data.data.coordinates.length === 0,
+    "Trip with unresolvable coordinates fails gracefully without inventing fake coordinates"
+  );
+  await Trip.deleteOne({ _id: unresolvableTrip._id });
+
   // 14. Multi-Tenant Organization Registration & Complete Data Isolation
   console.log("\n▶️  Test Group 14: Multi-Tenant Organization Registration & Complete Data Isolation");
 
@@ -680,20 +722,55 @@ async function runTests() {
   const hasQuantumVeh = (legacyVehiclesRes.data.data || []).some(v => v.id === "FL-Q100");
   assert(!hasQuantumVeh, "Legacy organization vehicle list does NOT leak Quantum Logistics vehicle FL-Q100");
 
-  // 14.5 New Admin Adds Driver with Linked Employee Login Account
+  // 14.5 New Admin Adds Driver Profile (Without Login Account)
   const addElenaDriverRes = await request("POST", "/api/drivers", { Cookie: elenaCookie }, {
     id: "D-Q01",
     name: "Marcus Vance",
     license: "TS09 20260099",
     phone: "9887766554",
     safety: 98,
-    status: "Active",
-    createLogin: true,
+    status: "Active"
+  });
+  assert(addElenaDriverRes.status === 201, "New driver D-Q01 created in MongoDB without user login credentials");
+
+  const qDriverDocInitial = await Driver.findOne({ id: "D-Q01" });
+  assert(
+    qDriverDocInitial !== null && qDriverDocInitial.userId === null,
+    "Driver document in MongoDB has userId = null (no login account created)"
+  );
+
+  // 14.5b Attempt to create user with grantLogin: false is rejected
+  const noLoginUserRes = await request("POST", "/api/users", { Cookie: elenaCookie }, {
+    name: "Marcus Vance",
     username: "marcus_driver",
     email: "marcus@quantumfleet.com",
-    password: "Driver@Pass123"
+    password: "Driver@Pass123",
+    grantLogin: false
   });
-  assert(addElenaDriverRes.status === 201, "New driver D-Q01 created with linked employee login account in MongoDB");
+  assert(noLoginUserRes.status === 400, "User creation with grantLogin: false rejected with 400 Bad Request");
+
+  // 14.5c Attempt to link driver belonging to another tenant or non-existent is rejected
+  const badDriverRes = await request("POST", "/api/users", { Cookie: elenaCookie }, {
+    name: "Bad Driver",
+    username: "bad_driver",
+    email: "bad@quantumfleet.com",
+    password: "Driver@Pass123",
+    driverId: "D001", // Belongs to legacy org, not Quantum
+    grantLogin: true
+  });
+  assert(badDriverRes.status === 404, "Linking driver of another organization rejected with 404 Not Found");
+
+  // 14.5d User Management: Admin creates Employee login account and links to Driver D-Q01
+  const marcusCreateUserRes = await request("POST", "/api/users", { Cookie: elenaCookie }, {
+    name: "Marcus Vance",
+    username: "marcus_driver",
+    email: "marcus@quantumfleet.com",
+    password: "Driver@Pass123",
+    driverId: "D-Q01",
+    grantLogin: true
+  });
+  assert(marcusCreateUserRes.status === 201, "Employee user created via User Management with grantLogin: true and linked to driver D-Q01");
+  assert(marcusCreateUserRes.data.data.password === undefined, "Password is NOT exposed in User Management API response");
 
   const qDriverDoc = await Driver.findOne({ id: "D-Q01" });
   const marcusUserDoc = await User.findOne({ username: "marcus_driver" }).select("+password");
@@ -701,11 +778,24 @@ async function runTests() {
     qDriverDoc !== null &&
     marcusUserDoc !== null &&
     marcusUserDoc.role === "EMPLOYEE" &&
+    marcusUserDoc.driverId === "D-Q01" &&
     qDriverDoc.userId.toString() === marcusUserDoc._id.toString() &&
     qDriverDoc.organizationId.toString() === quantumOrgDoc._id.toString() &&
-    marcusUserDoc.organizationId.toString() === quantumOrgDoc._id.toString(),
-    "Driver and linked Employee account both saved in MongoDB with valid ObjectId cross-references and matching organizationId"
+    marcusUserDoc.organizationId.toString() === quantumOrgDoc._id.toString() &&
+    marcusUserDoc.password.startsWith("$2"),
+    "Driver and linked Employee account verified in MongoDB with bcrypt hashed password and two-way link"
   );
+
+  // 14.5e Attempt to link already-linked driver to another employee account is rejected with 409
+  const dupLinkRes = await request("POST", "/api/users", { Cookie: elenaCookie }, {
+    name: "Second Driver",
+    username: "second_driver",
+    email: "second@quantumfleet.com",
+    password: "Driver@Pass123",
+    driverId: "D-Q01",
+    grantLogin: true
+  });
+  assert(dupLinkRes.status === 409, "Linking already-linked driver to second employee rejected with 409 Conflict");
 
   // 14.6 New Employee Log In & Permission Isolation
   const marcusLoginRes = await request("POST", "/api/auth/login", {}, {

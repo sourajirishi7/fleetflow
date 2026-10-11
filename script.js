@@ -1,7 +1,37 @@
-// ================================
-// FLEETFLOW FULL-STACK APPLICATION LOGIC
-// Connected to Express REST API & MongoDB Atlas
-// ================================
+// ============================================================================
+// SECTION 1: CONSTANTS AND CONFIGURATION
+// ============================================================================
+
+const pageCopy = {
+  dashboard: ["Fleet Command Center", "Monitor your fleet, drivers, routes and maintenance in real time."],
+  vehicles: ["Vehicle Records", "Search, filter and manage every unit in the fleet."],
+  drivers: ["Driver Assignments", "Track licenses, safety scores and vehicle assignments."],
+  fuel: ["Fuel & Cost Control", "Record fill-ups, costs and kilometre efficiency."],
+  maintenance: ["Maintenance Schedules", "Keep overdue, upcoming and completed work in view."],
+  routes: ["Route History", "Review completed trips and live corridor tracking."],
+  users: ["User Management", "Create employee accounts, manage roles and account access."]
+};
+
+// ============================================================================
+// SECTION 2: DOM ELEMENT REFERENCES & SELECTORS
+// ============================================================================
+
+const DOM = {
+  sidebar: function () { return document.getElementById("sidebar"); },
+  backdrop: function () { return document.getElementById("sidebar-backdrop"); },
+  menuToggle: function () { return document.getElementById("menu-toggle"); },
+  pageTitle: function () { return document.getElementById("page-title"); },
+  pageSubtitle: function () { return document.getElementById("page-subtitle"); },
+  toastStack: function () { return document.getElementById("toast-stack"); },
+  modalOverlay: function () { return document.getElementById("modal-overlay"); },
+  modalTitle: function () { return document.getElementById("modal-title"); },
+  modalBody: function () { return document.getElementById("modal-body"); },
+  routeMap: function () { return document.getElementById("route-map"); }
+};
+
+// ============================================================================
+// SECTION 3: SHARED APPLICATION STATE
+// ============================================================================
 
 let vehicles = [];
 let drivers = [];
@@ -23,23 +53,17 @@ let routeMap = null;
 let routeLayerGroup = null;
 let selectedTripId = null;
 
-const pageCopy = {
-  dashboard: ["Fleet Command Center", "Monitor your fleet, drivers, routes and maintenance in real time."],
-  vehicles: ["Vehicle Records", "Search, filter and manage every unit in the fleet."],
-  drivers: ["Driver Assignments", "Track licenses, safety scores and vehicle assignments."],
-  fuel: ["Fuel & Cost Control", "Record fill-ups, costs and kilometre efficiency."],
-  maintenance: ["Maintenance Schedules", "Keep overdue, upcoming and completed work in view."],
-  routes: ["Route History", "Review completed trips and live corridor tracking."],
-  users: ["User Management", "Create employee accounts, manage roles and account access."]
-};
-
-// ================================
-// INITIALIZATION & AUTH CHECK
-// ================================
+// ============================================================================
+// SECTION 19: APPLICATION INITIALIZATION
+// ============================================================================
 
 document.addEventListener("DOMContentLoaded", function () {
   checkAuthAndInit();
 });
+
+// ============================================================================
+// SECTION 6: AUTHENTICATION AND SESSION HANDLING
+// ============================================================================
 
 async function checkAuthAndInit() {
   try {
@@ -74,6 +98,10 @@ async function checkAuthAndInit() {
     window.location.replace("/login.html");
   }
 }
+
+// ============================================================================
+// SECTION 7: NAVIGATION AND ROLE-BASED UI
+// ============================================================================
 
 function applyEmployeeNavLabels() {
   const lblDash = document.getElementById("nav-label-dashboard");
@@ -132,9 +160,9 @@ function updateUserChip(user) {
   }
 }
 
-// ================================
-// DATA FETCHING (REST API + MONGODB)
-// ================================
+// ============================================================================
+// SECTION 5: API AND HTTP HELPERS
+// ============================================================================
 
 async function loadAllFromBackend() {
   try {
@@ -197,9 +225,9 @@ function renderAll() {
   }
 }
 
-// ================================
-// EVENT BINDINGS
-// ================================
+// ============================================================================
+// SECTION 18: EVENT LISTENER REGISTRATION
+// ============================================================================
 
 function bindEvents() {
   document.querySelectorAll(".nav-item").forEach(function (btn) {
@@ -328,8 +356,6 @@ function bindEvents() {
         await handleLogout();
       } else if (action === "profile") {
         openModal("profile");
-      } else if (action === "settings") {
-        openModal("settings");
       }
       closePopovers();
     });
@@ -344,7 +370,7 @@ function bindEvents() {
   const mapRetryBtn = document.getElementById("map-retry-btn");
   if (mapRetryBtn) {
     mapRetryBtn.addEventListener("click", function () {
-      if (selectedTripId) selectTripRoute(selectedTripId);
+      if (selectedTripId) selectTripRoute(selectedTripId, true);
     });
   }
 
@@ -403,9 +429,9 @@ function renderNotifications() {
   }
 }
 
-// ================================
-// NAVIGATION
-// ================================
+// ============================================================================
+// SECTION 7 (CONTINUED): NAVIGATION DISPLAY & VIEW SWITCHING
+// ============================================================================
 
 function showSection(name) {
   if (currentUser && currentUser.role === "EMPLOYEE" && (name === "drivers" || name === "users")) {
@@ -491,9 +517,9 @@ function closePopovers() {
   if (userBtn) userBtn.setAttribute("aria-expanded", "false");
 }
 
-// ================================
-// HELPERS
-// ================================
+// ============================================================================
+// SECTION 4: GENERAL UTILITY FUNCTIONS
+// ============================================================================
 
 function getDriverById(id) {
   return drivers.find(function (d) { return d.id === id; });
@@ -554,9 +580,9 @@ function escapeHtml(text) {
     .replace(/"/g, "&quot;");
 }
 
-// ================================
-// DASHBOARD
-// ================================
+// ============================================================================
+// SECTION 8: DASHBOARD DATA AND STATISTICS
+// ============================================================================
 
 function renderDashboard() {
   const isEmployee = currentUser && currentUser.role === "EMPLOYEE";
@@ -662,9 +688,9 @@ function renderActivity() {
   }).join("") || "<p class='muted' style='padding: 1rem;'>No recent activities logged.</p>";
 }
 
-// ================================
-// VEHICLES
-// ================================
+// ============================================================================
+// SECTION 9: VEHICLE MANAGEMENT
+// ============================================================================
 
 function renderVehicles() {
   const q = (document.getElementById("vehicle-search").value || "").toLowerCase();
@@ -703,9 +729,9 @@ function emptyRow(cols, text) {
   return '<tr><td colspan="' + cols + '" style="text-align: center; color: var(--muted); padding: 2rem;">' + escapeHtml(text) + "</td></tr>";
 }
 
-// ================================
-// DRIVERS
-// ================================
+// ============================================================================
+// SECTION 10: DRIVER MANAGEMENT
+// ============================================================================
 
 function renderDrivers() {
   if (currentUser && currentUser.role !== "ADMIN") {
@@ -742,9 +768,9 @@ function renderDrivers() {
   };
 }
 
-// ================================
-// FUEL
-// ================================
+// ============================================================================
+// SECTION 12: FUEL MANAGEMENT
+// ============================================================================
 
 function calculateFleetAverage() {
   const values = fuelEntries.map(calculateFuelEfficiency).filter(function (n) { return n !== null; });
@@ -811,9 +837,9 @@ function renderFuel() {
   }).join("") || emptyRow(8, "No fuel records found.");
 }
 
-// ================================
-// MAINTENANCE (KANBAN)
-// ================================
+// ============================================================================
+// SECTION 13: MAINTENANCE MANAGEMENT
+// ============================================================================
 
 function classifyMaintenance(item) {
   if (item.status === "Completed") return "completed";
@@ -882,9 +908,9 @@ async function toggleTicketStatus(ticketId) {
   }
 }
 
-// ================================
-// ROUTES / TRIPS
-// ================================
+// ============================================================================
+// SECTION 14: ROUTES AND TRIPS (INTERACTIVE MAP & LEAFLET)
+// ============================================================================
 
 function renderRoutes() {
   const tbody = document.getElementById("route-table-body");
@@ -938,9 +964,9 @@ function renderRoutes() {
   }
 }
 
-// ================================
-// INTERACTIVE ROUTE MAP (LEAFLET & OSRM)
-// ================================
+// ============================================================================
+// SECTION 14 (CONTINUED): INTERACTIVE ROUTE MAP & HIGHWAY GEOMETRY
+// ============================================================================
 
 // GPS Integration Point Hook (For future telematics feed)
 const vehicleGpsFeed = null;
@@ -978,7 +1004,7 @@ function initOrUpdateRouteMap() {
   }
 }
 
-async function selectTripRoute(tripId) {
+async function selectTripRoute(tripId, forceRetry = false) {
   selectedTripId = tripId;
 
   // Highlight selected table row
@@ -990,21 +1016,71 @@ async function selectTripRoute(tripId) {
   const errorEl = document.getElementById("map-error");
   const errTextEl = document.getElementById("map-error-text");
   const metricsEl = document.getElementById("map-metrics");
+  const titleEl = document.getElementById("map-trip-title");
+  const captionEl = document.getElementById("map-caption");
+  const statusTextEl = document.getElementById("map-status-text");
+  const distEl = document.getElementById("map-metric-distance");
+  const durEl = document.getElementById("map-metric-duration");
 
   if (loadingEl) loadingEl.hidden = false;
   if (errorEl) errorEl.hidden = true;
 
+  // Fallback metadata from client trip cache
+  const localTrip = routes.find(function (r) { return r.id === tripId; }) || {};
+  const localVehicle = getVehicleById(localTrip.vehicleId);
+  const localDriver = localVehicle ? getDriverName(localVehicle.driverId) : (localTrip.driverId ? getDriverName(localTrip.driverId) : "—");
+  const defaultOriginName = localTrip.start || localTrip.startDestination || "Origin";
+  const defaultDestName = localTrip.end || localTrip.endDestination || "Destination";
+
   try {
-    const res = await fetch("/api/trips/" + encodeURIComponent(tripId) + "/route", {
+    const fetchUrl = "/api/trips/" + encodeURIComponent(tripId) + "/route" +
+      (forceRetry ? "?retry=true&t=" + Date.now() : "");
+
+    const res = await fetch(fetchUrl, {
       credentials: "include"
     });
     const data = await res.json();
 
     if (!res.ok || !data.success || !data.data) {
-      throw new Error(data.message || "Failed to load road route data.");
+      throw new Error(data.message || "Route coordinates are unavailable for this trip.");
     }
 
     const r = data.data;
+
+    // Defensive extraction of origin and destination objects
+    const origin = (r.origin && typeof r.origin === "object") ? r.origin : {};
+    const dest = (r.destination && typeof r.destination === "object") ? r.destination : {};
+    const originName = (typeof origin.name === "string" && origin.name.trim()) ? origin.name.trim() : defaultOriginName;
+    const destName = (typeof dest.name === "string" && dest.name.trim()) ? dest.name.trim() : defaultDestName;
+    const vehicleId = r.vehicleId || localTrip.vehicleId || "—";
+    const driverId = r.driverId || localTrip.driverId || "";
+    const driverName = driverId ? getDriverName(driverId) : localDriver;
+    const status = r.status || localTrip.status || "On Time";
+
+    // Validate coordinates presence
+    const hasOriginCoords = typeof origin.lat === "number" && typeof origin.lng === "number" &&
+      Number.isFinite(origin.lat) && Number.isFinite(origin.lng);
+    const hasDestCoords = typeof dest.lat === "number" && typeof dest.lng === "number" &&
+      Number.isFinite(dest.lat) && Number.isFinite(dest.lng);
+    const hasValidCoordinates = Array.isArray(r.coordinates) && r.coordinates.length >= 2 &&
+      r.coordinates.every(function (coord) {
+        return Array.isArray(coord) && coord.length >= 2 &&
+          typeof coord[0] === "number" && Number.isFinite(coord[0]) &&
+          typeof coord[1] === "number" && Number.isFinite(coord[1]);
+      });
+
+    if (r.available === false || !hasOriginCoords || !hasDestCoords || !hasValidCoordinates) {
+      if (routeLayerGroup) {
+        routeLayerGroup.clearLayers();
+      }
+      if (metricsEl) metricsEl.hidden = true;
+      if (titleEl) titleEl.textContent = tripId + " · " + originName + " → " + destName;
+      if (captionEl) captionEl.textContent = originName + " → " + destName + " · Vehicle " + vehicleId + " · Coordinates unavailable";
+      if (statusTextEl) statusTextEl.textContent = "Coordinates Unavailable";
+      if (errTextEl) errTextEl.textContent = r.message || "Route coordinates are unavailable for this trip.";
+      if (errorEl) errorEl.hidden = false;
+      return;
+    }
 
     if (!routeMap) {
       initOrUpdateRouteMap();
@@ -1030,33 +1106,37 @@ async function selectTripRoute(tripId) {
     // Custom Origin Marker (A)
     const originIcon = L.divIcon({
       className: "custom-leaflet-pin",
-      html: '<div class="map-pin-custom pin-origin" title="Origin: ' + escapeHtml(r.origin.name) + '"><span>A</span></div>',
+      html: '<div class="map-pin-custom pin-origin" title="Origin: ' + escapeHtml(originName) + '"><span>A</span></div>',
       iconSize: [30, 30],
       iconAnchor: [15, 30],
       popupAnchor: [0, -28]
     });
-    const originMarker = L.marker([r.origin.lat, r.origin.lng], { icon: originIcon }).addTo(routeLayerGroup);
-    originMarker.bindTooltip("Origin: " + escapeHtml(r.origin.name), { direction: "top" });
+    const originMarker = L.marker([origin.lat, origin.lng], { icon: originIcon }).addTo(routeLayerGroup);
+    originMarker.bindTooltip("Origin: " + escapeHtml(originName), { direction: "top" });
 
     // Custom Destination Marker (B)
     const destIcon = L.divIcon({
       className: "custom-leaflet-pin",
-      html: '<div class="map-pin-custom pin-dest" title="Destination: ' + escapeHtml(r.destination.name) + '"><span>B</span></div>',
+      html: '<div class="map-pin-custom pin-dest" title="Destination: ' + escapeHtml(destName) + '"><span>B</span></div>',
       iconSize: [30, 30],
       iconAnchor: [15, 30],
       popupAnchor: [0, -28]
     });
-    const destMarker = L.marker([r.destination.lat, r.destination.lng], { icon: destIcon }).addTo(routeLayerGroup);
-    destMarker.bindTooltip("Destination: " + escapeHtml(r.destination.name), { direction: "top" });
+    const destMarker = L.marker([dest.lat, dest.lng], { icon: destIcon }).addTo(routeLayerGroup);
+    destMarker.bindTooltip("Destination: " + escapeHtml(destName), { direction: "top" });
 
     // Rich popup on route and markers
+    const distanceVal = (r.distanceKm != null ? r.distanceKm : localTrip.distance) || 0;
+    const durationVal = r.durationFormatted || localTrip.duration || "N/A";
+
     const popupHtml = '<div style="font-family: inherit; font-size: 0.85rem; line-height: 1.5; min-width: 210px;">' +
-      '<div style="font-weight: 700; color: #4f46e5; font-size: 0.95rem; margin-bottom: 4px;">Route ' + escapeHtml(r.tripId) + '</div>' +
-      '<div><strong>Highway Corridor:</strong> ' + escapeHtml(r.origin.name) + ' &rarr; ' + escapeHtml(r.destination.name) + '</div>' +
-      '<div><strong>Vehicle:</strong> ' + escapeHtml(r.vehicleId) + '</div>' +
-      '<div><strong>Road Distance:</strong> ' + r.distanceKm + ' km</div>' +
-      '<div><strong>Est. Travel Time:</strong> ' + escapeHtml(r.durationFormatted) + '</div>' +
-      '<div style="margin-top: 6px;">' + statusBadge(r.status) + '</div>' +
+      '<div style="font-weight: 700; color: #4f46e5; font-size: 0.95rem; margin-bottom: 4px;">Route ' + escapeHtml(r.tripId || tripId) + '</div>' +
+      '<div><strong>Highway Corridor:</strong> ' + escapeHtml(originName) + ' &rarr; ' + escapeHtml(destName) + '</div>' +
+      '<div><strong>Vehicle:</strong> ' + escapeHtml(vehicleId) + '</div>' +
+      '<div><strong>Driver:</strong> ' + escapeHtml(driverName) + '</div>' +
+      '<div><strong>Road Distance:</strong> ' + distanceVal + ' km</div>' +
+      '<div><strong>Est. Travel Time:</strong> ' + escapeHtml(durationVal) + '</div>' +
+      '<div style="margin-top: 6px;">' + statusBadge(status) + '</div>' +
       '</div>';
 
     originMarker.bindPopup(popupHtml);
@@ -1064,35 +1144,36 @@ async function selectTripRoute(tripId) {
     polyline.bindPopup(popupHtml);
 
     // Fit map bounds to encompass the entire route
-    routeMap.fitBounds(polyline.getBounds(), {
-      padding: [40, 40],
-      maxZoom: 14
-    });
-
-    // Update map card labels and captions
-    const titleEl = document.getElementById("map-trip-title");
-    if (titleEl) titleEl.textContent = r.tripId + " · " + r.origin.name + " → " + r.destination.name;
-
-    const captionEl = document.getElementById("map-caption");
-    if (captionEl) {
-      captionEl.textContent = r.origin.name + " → " + r.destination.name + " highway corridor · Vehicle " + r.vehicleId + " · Planned Route";
+    const bounds = polyline.getBounds();
+    if (bounds && bounds.isValid && bounds.isValid()) {
+      routeMap.fitBounds(bounds, {
+        padding: [40, 40],
+        maxZoom: 14
+      });
     }
 
-    const statusTextEl = document.getElementById("map-status-text");
+    // Update map card labels and captions
+    if (titleEl) titleEl.textContent = (r.tripId || tripId) + " · " + originName + " → " + destName;
+    if (captionEl) {
+      captionEl.textContent = originName + " → " + destName + " highway corridor · Vehicle " + vehicleId + " · Planned Route";
+    }
     if (statusTextEl) {
       statusTextEl.textContent = r.isRoadRoute ? "Road Route Active (OSRM)" : "Direct Trajectory (Fallback)";
     }
-
-    const distEl = document.getElementById("map-metric-distance");
-    if (distEl) distEl.textContent = r.distanceKm + " km";
-
-    const durEl = document.getElementById("map-metric-duration");
-    if (durEl) durEl.textContent = r.durationFormatted;
-
+    if (distEl) distEl.textContent = distanceVal + " km";
+    if (durEl) durEl.textContent = durationVal;
     if (metricsEl) metricsEl.hidden = false;
+    if (errorEl) errorEl.hidden = true;
   } catch (err) {
     console.error("Error loading route:", err);
-    if (errTextEl) errTextEl.textContent = err.message || "Failed to calculate road route.";
+    if (routeLayerGroup) {
+      routeLayerGroup.clearLayers();
+    }
+    if (metricsEl) metricsEl.hidden = true;
+    if (titleEl) titleEl.textContent = tripId + " · " + defaultOriginName + " → " + defaultDestName;
+    if (captionEl) captionEl.textContent = defaultOriginName + " → " + defaultDestName + " · Vehicle " + (localTrip.vehicleId || "—");
+    if (statusTextEl) statusTextEl.textContent = "Route Unavailable";
+    if (errTextEl) errTextEl.textContent = err.message || "Route coordinates are unavailable for this trip.";
     if (errorEl) errorEl.hidden = false;
   } finally {
     if (loadingEl) loadingEl.hidden = true;
@@ -1121,9 +1202,9 @@ async function updateTripStatus(tripId, newStatus) {
   }
 }
 
-// ================================
-// USER MANAGEMENT (ADMIN ONLY)
-// ================================
+// ============================================================================
+// SECTION 11: USER MANAGEMENT (ADMIN ONLY)
+// ============================================================================
 
 function renderUsers() {
   const q = (document.getElementById("user-search") ? document.getElementById("user-search").value : "").toLowerCase();
@@ -1183,9 +1264,9 @@ async function handleToggleUserStatus(userId, newStatus) {
   }
 }
 
-// ================================
-// GLOBAL SEARCH
-// ================================
+// ============================================================================
+// SECTION 16: TABLES, FILTERS, AND SEARCH
+// ============================================================================
 
 function runGlobalSearch() {
   const box = document.getElementById("search-results");
@@ -1242,9 +1323,9 @@ function runGlobalSearch() {
   };
 }
 
-// ================================
-// MODALS & FORMS
-// ================================
+// ============================================================================
+// SECTION 17: MODAL AND NOTIFICATION UTILITIES
+// ============================================================================
 
 function openModal(mode, id) {
   if (currentUser && currentUser.role === "EMPLOYEE") {
@@ -1283,9 +1364,6 @@ function openModal(mode, id) {
   } else if (mode === "profile") {
     title.textContent = "My Profile";
     body.innerHTML = profileFormHtml();
-  } else if (mode === "settings") {
-    title.textContent = "System Operations & Database Info";
-    body.innerHTML = settingsHtml();
   }
 
   overlay.hidden = false;
@@ -1297,6 +1375,29 @@ function openModal(mode, id) {
     form.addEventListener("click", function (event) {
       if (event.target.hasAttribute("data-cancel")) closeModal();
     });
+
+    const grantLoginCb = form.querySelector("#user-grant-login");
+    const loginBox = form.querySelector("#user-login-box");
+    const noticeBox = form.querySelector("#user-no-login-notice");
+    if (grantLoginCb && loginBox) {
+      grantLoginCb.addEventListener("change", function () {
+        const isChecked = this.checked;
+        loginBox.hidden = !isChecked;
+        if (noticeBox) noticeBox.hidden = isChecked;
+        const userInput = form.querySelector("#username");
+        const emailInput = form.querySelector("#email");
+        const passInput = form.querySelector("#password");
+        if (userInput) userInput.required = isChecked;
+        if (emailInput) emailInput.required = isChecked;
+        if (passInput) passInput.required = isChecked;
+        if (!isChecked) {
+          if (userInput) userInput.value = "";
+          if (emailInput) emailInput.value = "";
+          if (passInput) passInput.value = "";
+          clearErrors(form);
+        }
+      });
+    }
   }
 }
 
@@ -1379,12 +1480,6 @@ function driverFormHtml() {
       { value: "Off-Duty", label: "Off-Duty" }
     ])) +
     selectField("vehicleId", "Assigned Vehicle", vehicleOpts, false, false) +
-    '<div class="field full" style="margin-top: 6px;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="driver-create-login" name="createLogin" onchange="document.getElementById(\'driver-login-box\').hidden = !this.checked;"> <strong>Grant Employee Login Access</strong></label></div>' +
-    '<div id="driver-login-box" class="form-grid full" style="grid-column: 1 / -1; margin-top: 6px; padding: 12px; background: var(--bg); border: 1px dashed var(--line); border-radius: 8px;" hidden>' +
-      field("username", "Login Username", "text", { placeholder: "e.g. driver_ramesh" }) +
-      field("email", "Login Email", "email", { placeholder: "ramesh@fleetflow.local" }) +
-      '<div class="field full"><label for="password">Login Password (min 6 chars)</label><input type="password" id="password" name="password" placeholder="Create password for driver"></div>' +
-    '</div>' +
     formActions("Add Driver to Atlas") + "</form>";
 }
 
@@ -1455,11 +1550,22 @@ function userFormHtml() {
   }));
 
   return '<form id="modal-form" class="form-grid" novalidate>' +
-    field("username", "Username", "text", { required: true, placeholder: "e.g. employee2" }) +
     field("name", "Full Name", "text", { required: true, placeholder: "e.g. Rahul Sharma" }) +
-    field("email", "Email Address", "email", { required: true, placeholder: "rahul@fleetflow.local" }) +
-    field("password", "Initial Password", "password", { required: true, placeholder: "At least 6 characters" }) +
-    field("phone", "Phone Number", "tel", { placeholder: "10-digit phone" }) +
+    field("phone", "Phone Number", "tel", { placeholder: "10-digit mobile number" }) +
+    '<div class="field full" style="margin-top: 4px; margin-bottom: 4px;">' +
+      '<label class="checkbox-label" for="user-grant-login">' +
+        '<input type="checkbox" id="user-grant-login" name="grantLogin" checked class="checkbox-input">' +
+        '<span>Grant Employee Login Access</span>' +
+      '</label>' +
+    '</div>' +
+    '<div id="user-login-box" class="form-grid full" style="grid-column: 1 / -1; margin-top: 2px;">' +
+      field("username", "Username", "text", { required: true, placeholder: "e.g. employee2" }) +
+      field("email", "Email Address", "email", { required: true, placeholder: "rahul@fleetflow.local" }) +
+      '<div class="field full"><label for="password">Initial Password (min 6 chars)</label><input id="password" name="password" type="password" required placeholder="At least 6 characters"><div class="error" data-error-for="password"></div></div>' +
+    '</div>' +
+    '<div id="user-no-login-notice" class="field full" style="margin-top: 4px; padding: 10px 14px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; color: #92400e; font-size: 0.84rem; line-height: 1.4;" hidden>' +
+      '<strong>Employee Login Access Disabled:</strong> Login credentials are required to create an active user account in User Management. Enable the checkbox above to grant login access. To create an operational driver record without login access, use the Add Driver form on the Drivers page.' +
+    '</div>' +
     selectField("driverId", "Link to Driver Profile", driverOpts, false, false) +
     formActions("Create Employee Account") + "</form>";
 }
@@ -1476,16 +1582,6 @@ function profileFormHtml() {
     formActions("Update Profile") + "</form>";
 }
 
-function settingsHtml() {
-  return '<div style="line-height: 1.7; font-size: 0.95rem;">' +
-    '<h3 style="margin-top: 0;">Database & Environment</h3>' +
-    '<p><strong>Persistent Database:</strong> MongoDB Atlas Cluster</p>' +
-    '<p><strong>Authentication:</strong> JWT stored in secure HTTP-only cookies with bcrypt hashing</p>' +
-    '<p><strong>API Base:</strong> <code>/api</code> (Express.js REST Architecture)</p>' +
-    '<p><strong>Active Session:</strong> Logged in as <strong>' + escapeHtml(currentUser ? currentUser.name : "") + '</strong> (' + escapeHtml(currentUser ? currentUser.role : "") + ')</p>' +
-    '<div class="modal-actions" style="margin-top: 2rem;"><button type="button" class="btn btn-primary" onclick="closeModal()">Close</button></div>' +
-    '</div>';
-}
 
 function vehicleDetailsHtml(id) {
   const v = getVehicleById(id);
@@ -1514,9 +1610,9 @@ function detail(label, value) {
   return "<div><dt>" + escapeHtml(String(label)) + "</dt><dd>" + escapeHtml(String(value)) + "</dd></div>";
 }
 
-// ================================
-// FORM SUBMISSION & BACKEND WRITES
-// ================================
+// ============================================================================
+// SECTION 15: FORM VALIDATION AND SUBMISSION
+// ============================================================================
 
 async function handleModalSubmit(event) {
   event.preventDefault();
@@ -1547,6 +1643,16 @@ function setFieldError(form, name, message) {
   const input = form.elements[name];
   if (box) box.textContent = message || "";
   if (input) input.setAttribute("aria-invalid", message ? "true" : "false");
+}
+
+function clearErrors(form) {
+  if (!form) return;
+  form.querySelectorAll("[data-error-for]").forEach(function (box) {
+    box.textContent = "";
+  });
+  form.querySelectorAll("[aria-invalid]").forEach(function (input) {
+    input.setAttribute("aria-invalid", "false");
+  });
 }
 
 function required(form, names) {
@@ -1606,26 +1712,13 @@ async function submitDriver(form) {
     return;
   }
 
-  const createLogin = form.elements.createLogin && form.elements.createLogin.checked;
-  if (createLogin) {
-    const pwd = form.elements.password ? form.elements.password.value : "";
-    if (!pwd || pwd.length < 6) {
-      showToast("Please enter a password with at least 6 characters for the login account", "error");
-      return;
-    }
-  }
-
   const payload = {
     name: form.elements.name.value.trim(),
     license: form.elements.license.value.trim(),
     phone: phone,
     safety: Number(form.elements.safety.value),
     status: form.elements.status.value,
-    vehicleId: form.elements.vehicleId.value,
-    createLogin: Boolean(createLogin),
-    username: form.elements.username ? form.elements.username.value.trim() : "",
-    email: form.elements.email ? form.elements.email.value.trim() : "",
-    password: form.elements.password ? form.elements.password.value : ""
+    vehicleId: form.elements.vehicleId.value
   };
 
   const res = await fetch("/api/drivers", {
@@ -1638,7 +1731,7 @@ async function submitDriver(form) {
   const data = await res.json();
   if (res.ok && data.success) {
     closeModal();
-    showToast("Driver " + payload.name + " saved to MongoDB Atlas!" + (createLogin ? " (Employee account created)" : ""), "success");
+    showToast("Driver " + payload.name + " saved to MongoDB Atlas!", "success");
     await loadAllFromBackend();
   } else {
     showToast(data.message || "Failed to create driver", "error");
@@ -1734,15 +1827,45 @@ async function submitReassign(form) {
 }
 
 async function submitUser(form) {
-  if (!required(form, ["username", "name", "email", "password"])) return;
+  clearErrors(form);
+  const grantLoginCb = form.querySelector("#user-grant-login");
+  const grantLogin = grantLoginCb ? grantLoginCb.checked : true;
+
+  if (!grantLogin) {
+    showToast("Employee login access must be enabled to create an employee account.", "error");
+    const noticeBox = form.querySelector("#user-no-login-notice");
+    if (noticeBox) noticeBox.hidden = false;
+    return;
+  }
+
+  if (!required(form, ["name", "username", "email", "password"])) return;
+
+  const phone = form.elements.phone ? form.elements.phone.value.trim() : "";
+  if (phone && !/^\d{10}$/.test(phone)) {
+    setFieldError(form, "phone", "Enter a valid 10-digit phone number.");
+    return;
+  }
+
+  const pwd = form.elements.password.value;
+  if (pwd.length < 6) {
+    setFieldError(form, "password", "Password must be at least 6 characters.");
+    return;
+  }
+
+  const email = form.elements.email.value.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    setFieldError(form, "email", "Please enter a valid email address.");
+    return;
+  }
 
   const payload = {
     username: form.elements.username.value.trim(),
     name: form.elements.name.value.trim(),
-    email: form.elements.email.value.trim(),
-    password: form.elements.password.value,
-    phone: form.elements.phone ? form.elements.phone.value.trim() : "",
+    email: email,
+    password: pwd,
+    phone: phone,
     driverId: form.elements.driverId ? form.elements.driverId.value.trim() : "",
+    grantLogin: true,
     role: "EMPLOYEE"
   };
 
@@ -1760,8 +1883,9 @@ async function submitUser(form) {
     await loadAllFromBackend();
   } else {
     showToast(data.message || "Failed to create user", "error");
-    if (data.message && data.message.includes("Username")) setFieldError(form, "username", data.message);
-    if (data.message && data.message.includes("Email")) setFieldError(form, "email", data.message);
+    if (data.message && data.message.toLowerCase().includes("username")) setFieldError(form, "username", data.message);
+    if (data.message && data.message.toLowerCase().includes("email")) setFieldError(form, "email", data.message);
+    if (data.message && data.message.toLowerCase().includes("driver")) setFieldError(form, "driverId", data.message);
   }
 }
 
@@ -1791,9 +1915,9 @@ async function submitProfile(form) {
   }
 }
 
-// ================================
-// TOAST NOTIFICATIONS
-// ================================
+// ============================================================================
+// SECTION 17 (CONTINUED): TOAST NOTIFICATIONS & FEEDBACK
+// ============================================================================
 
 function showToast(message, type) {
   const stack = document.getElementById("toast-stack");

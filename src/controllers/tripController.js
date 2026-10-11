@@ -348,7 +348,7 @@ const deleteTrip = async (req, res, next) => {
 };
 
 /**
- * Regional Transit Corridors Coordinate Dictionary (Andhra Pradesh & Telangana Hubs)
+ * Regional Transit Corridors Coordinate Dictionary (Andhra Pradesh, Telangana & Major Hubs)
  */
 const CITY_COORDINATES = {
   hyderabad: { name: "Hyderabad", lat: 17.3850, lng: 78.4867 },
@@ -362,42 +362,134 @@ const CITY_COORDINATES = {
   nizamabad: { name: "Nizamabad", lat: 18.6725, lng: 78.0941 },
   bengaluru: { name: "Bengaluru", lat: 12.9716, lng: 77.5946 },
   bangalore: { name: "Bengaluru", lat: 12.9716, lng: 77.5946 },
-  nagpur: { name: "Nagpur", lat: 21.1458, lng: 79.0882 }
+  nagpur: { name: "Nagpur", lat: 21.1458, lng: 79.0882 },
+  mumbai: { name: "Mumbai", lat: 19.0760, lng: 72.8777 },
+  pune: { name: "Pune", lat: 18.5204, lng: 73.8567 },
+  chennai: { name: "Chennai", lat: 13.0827, lng: 80.2707 },
+  delhi: { name: "Delhi", lat: 28.6139, lng: 77.2090 },
+  "new delhi": { name: "New Delhi", lat: 28.6139, lng: 77.2090 },
+  kolkata: { name: "Kolkata", lat: 22.5726, lng: 88.3639 },
+  tirupati: { name: "Tirupati", lat: 13.6288, lng: 79.4192 },
+  kurnool: { name: "Kurnool", lat: 15.8281, lng: 78.0373 },
+  rajahmundry: { name: "Rajahmundry", lat: 17.0005, lng: 81.8040 },
+  nellore: { name: "Nellore", lat: 14.4426, lng: 79.9865 },
+  kadapa: { name: "Kadapa", lat: 14.4673, lng: 78.8242 },
+  anantapur: { name: "Anantapur", lat: 14.6819, lng: 77.6006 }
 };
 
 const routeCache = new Map();
 
-async function geocodeCity(cityName) {
-  if (!cityName) return null;
-  const clean = cityName.trim().toLowerCase();
+/**
+ * Validate geographic latitude and longitude values
+ */
+function isValidLatLng(lat, lng) {
+  return typeof lat === "number" && typeof lng === "number" &&
+         Number.isFinite(lat) && Number.isFinite(lng) &&
+         lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 &&
+         !(lat === 0 && lng === 0);
+}
+
+/**
+ * Resolve location string or object to valid geographic coordinates
+ */
+function geocodeLocation(locationInput, explicitCoords) {
+  // 1. Check explicit coordinates if provided
+  if (explicitCoords && typeof explicitCoords === "object") {
+    const lat = Number(explicitCoords.lat);
+    const lng = Number(explicitCoords.lng);
+    if (isValidLatLng(lat, lng)) {
+      const name = (typeof locationInput === "string" && locationInput.trim())
+        ? locationInput.trim()
+        : (locationInput && locationInput.name) || "Waypoint";
+      return { name, lat, lng };
+    }
+  }
+
+  // 2. Check if locationInput itself has coordinates
+  if (locationInput && typeof locationInput === "object") {
+    const lat = Number(locationInput.lat);
+    const lng = Number(locationInput.lng);
+    if (isValidLatLng(lat, lng)) {
+      const name = locationInput.name || locationInput.address || locationInput.city || "Waypoint";
+      return { name, lat, lng };
+    }
+    locationInput = locationInput.name || locationInput.address || locationInput.city || "";
+  }
+
+  if (typeof locationInput !== "string" || !locationInput.trim()) {
+    return null;
+  }
+
+  const clean = locationInput.trim().toLowerCase();
+
+  // 3. Exact dictionary match
   if (CITY_COORDINATES[clean]) {
     return { ...CITY_COORDINATES[clean] };
   }
-  return {
-    name: cityName,
-    lat: 17.3850,
-    lng: 78.4867
-  };
+
+  // 4. Token / substring dictionary match
+  for (const [key, coord] of Object.entries(CITY_COORDINATES)) {
+    if (clean.includes(key) || key.includes(clean)) {
+      return { name: locationInput.trim(), lat: coord.lat, lng: coord.lng };
+    }
+  }
+
+  // No arbitrary fake coordinates
+  return null;
 }
 
-async function resolveTripRoadRoute(trip) {
-  const cacheKey = `${trip.start}_${trip.end}`.toLowerCase();
-  if (routeCache.has(cacheKey)) {
+/**
+ * Calculate or retrieve highway route for a trip
+ */
+async function resolveTripRoadRoute(trip, forceRefresh = false) {
+  // Resolve origin and destination coordinates safely
+  const origin = geocodeLocation(
+    trip.start || trip.startDestination,
+    trip.startCoordinates
+  );
+  const destination = geocodeLocation(
+    trip.end || trip.endDestination,
+    trip.endCoordinates
+  );
+
+  const startName = (origin && origin.name) || trip.start || trip.startDestination || "Origin";
+  const endName = (destination && destination.name) || trip.end || trip.endDestination || "Destination";
+
+  // When coordinates cannot be resolved, return safe response without drawing fake routes
+  if (!origin || !destination || !isValidLatLng(origin.lat, origin.lng) || !isValidLatLng(destination.lat, destination.lng)) {
+    return {
+      available: false,
+      tripId: trip.id,
+      vehicleId: trip.vehicleId || "",
+      driverId: trip.driverId || "",
+      status: trip.status || "On Time",
+      origin: origin || { name: startName, lat: null, lng: null },
+      destination: destination || { name: endName, lat: null, lng: null },
+      distanceKm: trip.distance || trip.distanceKm || 0,
+      durationFormatted: trip.duration || "N/A",
+      coordinates: [],
+      isRoadRoute: false,
+      message: "Route coordinates are unavailable for this trip."
+    };
+  }
+
+  const cacheKey = `${trip.id}_${origin.lat}_${origin.lng}_${destination.lat}_${destination.lng}`.toLowerCase();
+  if (forceRefresh) {
+    routeCache.delete(cacheKey);
+  } else if (routeCache.has(cacheKey)) {
     const cached = routeCache.get(cacheKey);
     return {
+      available: true,
       tripId: trip.id,
-      vehicleId: trip.vehicleId,
-      driverId: trip.driverId,
-      status: trip.status,
+      vehicleId: trip.vehicleId || "",
+      driverId: trip.driverId || "",
+      status: trip.status || "On Time",
       ...cached
     };
   }
 
-  const origin = await geocodeCity(trip.start || trip.startDestination);
-  const destination = await geocodeCity(trip.end || trip.endDestination);
-
   let coordinates = [];
-  let calculatedDistanceKm = trip.distance || 0;
+  let calculatedDistanceKm = trip.distance || trip.distanceKm || 0;
   let formattedDuration = trip.duration || "N/A";
   let isRoadRoute = false;
 
@@ -438,7 +530,9 @@ async function resolveTripRoadRoute(trip) {
     isRoadRoute = false;
   }
 
-  const result = {
+  const cachedData = {
+    origin: { name: origin.name, lat: origin.lat, lng: origin.lng },
+    destination: { name: destination.name, lat: destination.lat, lng: destination.lng },
     distanceKm: calculatedDistanceKm,
     durationFormatted: formattedDuration,
     coordinates,
@@ -448,17 +542,16 @@ async function resolveTripRoadRoute(trip) {
   };
 
   if (isRoadRoute) {
-    routeCache.set(cacheKey, result);
+    routeCache.set(cacheKey, cachedData);
   }
 
   return {
+    available: true,
     tripId: trip.id,
-    vehicleId: trip.vehicleId,
-    driverId: trip.driverId,
-    status: trip.status,
-    origin,
-    destination,
-    ...result
+    vehicleId: trip.vehicleId || "",
+    driverId: trip.driverId || "",
+    status: trip.status || "On Time",
+    ...cachedData
   };
 }
 
@@ -488,7 +581,8 @@ const getTripRoute = async (req, res, next) => {
       }
     }
 
-    const routeData = await resolveTripRoadRoute(trip);
+    const forceRefresh = req.query.retry === "true" || req.query.refresh === "true";
+    const routeData = await resolveTripRoadRoute(trip, forceRefresh);
     return successResponse(res, routeData, "Route calculated successfully");
   } catch (err) {
     next(err);

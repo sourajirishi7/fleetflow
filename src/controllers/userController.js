@@ -1,4 +1,6 @@
 const User = require("../models/User");
+const Driver = require("../models/Driver");
+const Activity = require("../models/Activity");
 const { successResponse, errorResponse } = require("../utils/response");
 
 /**
@@ -51,8 +53,13 @@ const getUserById = async (req, res, next) => {
  */
 const createUser = async (req, res, next) => {
   try {
-    const { username, email, password, name, fullName, phone, driverId } = req.body;
+    const { username, email, password, name, fullName, phone, driverId, grantLogin } = req.body;
     const effectiveName = (name || fullName || "").trim();
+
+    // If grantLogin is explicitly disabled, reject user account creation
+    if (grantLogin === false || grantLogin === "false") {
+      return errorResponse(res, "Employee login access is disabled. Cannot create user account without login access.", 400);
+    }
 
     if (!username || !email || !password || !effectiveName) {
       return errorResponse(res, "Username, email, password, and name are required", 400);
@@ -80,7 +87,22 @@ const createUser = async (req, res, next) => {
       return errorResponse(res, "Email is already registered", 409);
     }
 
-    // Force role to EMPLOYEE on backend
+    // Validate driver linking if provided (links to existing driver without duplicate creation)
+    let linkedDriver = null;
+    if (driverId && driverId.trim()) {
+      const dId = driverId.trim().toUpperCase();
+      linkedDriver = await Driver.findOne({ id: dId, organizationId });
+      if (!linkedDriver) {
+        return errorResponse(res, `Driver profile '${dId}' not found in your organization`, 404);
+      }
+      // Check if driver is already linked to another user account
+      const existingLinkedUser = await User.findOne({ driverId: dId, organizationId });
+      if (existingLinkedUser) {
+        return errorResponse(res, `Driver '${dId}' is already linked to user account '${existingLinkedUser.username}'`, 409);
+      }
+    }
+
+    // Force role to EMPLOYEE on backend (prevent role escalation)
     const newUser = await User.create({
       organizationId,
       username: username.trim(),
@@ -90,11 +112,31 @@ const createUser = async (req, res, next) => {
       name: effectiveName,
       role: "EMPLOYEE",
       phone: phone ? phone.trim() : "",
-      driverId: driverId ? driverId.trim() : "",
+      driverId: linkedDriver ? linkedDriver.id : "",
       isActive: true,
       status: "Active",
       createdBy: req.user._id
     });
+
+    // Synchronize two-way link in existing Driver model with compensation rollback
+    if (linkedDriver) {
+      try {
+        linkedDriver.userId = newUser._id;
+        await linkedDriver.save();
+      } catch (linkErr) {
+        await User.findByIdAndDelete(newUser._id);
+        throw linkErr;
+      }
+    }
+
+    // Log Activity
+    await Activity.create({
+      organizationId,
+      icon: "👤",
+      text: `Employee account '${newUser.username}' was created by Admin`,
+      time: "Just now",
+      status: "Info"
+    }).catch(() => {});
 
     return successResponse(res, newUser.toJSON(), "Employee user created successfully", 201);
   } catch (err) {

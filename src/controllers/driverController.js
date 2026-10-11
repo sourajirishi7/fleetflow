@@ -193,47 +193,11 @@ const createDriver = async (req, res, next) => {
       }
     }
 
-    // Handle optional linked employee login creation
-    let linkedUserId = null;
-    const wantsLogin = createLogin === true || createLogin === "true" || Boolean(password);
-
-    if (wantsLogin) {
-      const loginUsername = (username || `driver_${id.toLowerCase()}`).trim();
-      const loginEmail = (email || `${loginUsername}@fleetflow.local`).trim().toLowerCase();
-
-      if (!password || password.length < 6) {
-        return errorResponse(res, "A password of at least 6 characters is required to create a login account", 400);
-      }
-
-      // Check duplicate user credentials
-      const userExists = await User.findOne({
-        $or: [{ username: loginUsername }, { email: loginEmail }]
-      });
-      if (userExists) {
-        return errorResponse(res, "A user account with that username or email already exists", 409);
-      }
-
-      const createdUser = await User.create({
-        organizationId: orgId,
-        username: loginUsername,
-        email: loginEmail,
-        password,
-        fullName: effectiveName,
-        name: effectiveName,
-        role: "EMPLOYEE",
-        phone: phone.trim(),
-        driverId: id,
-        isActive: true,
-        status: "Active",
-        createdBy: req.user._id
-      });
-      linkedUserId = createdUser._id;
-    }
-
+    // Drivers page creates only driver profiles; login accounts are managed via User Management
     const newDriver = await Driver.create({
       organizationId: orgId,
       id,
-      userId: linkedUserId,
+      userId: null,
       fullName: effectiveName,
       name: effectiveName,
       licenseNumber: effectiveLicense,

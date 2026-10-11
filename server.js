@@ -32,8 +32,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Serve existing static frontend files directly from root
-app.use(express.static(__dirname));
+// Serve existing static frontend files directly from root with cache-busting headers
+app.use(express.static(__dirname, {
+  etag: false,
+  maxAge: 0,
+  setHeaders: (res) => {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  }
+}));
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {

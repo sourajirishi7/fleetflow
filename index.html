@@ -1,16 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
+<!-- ========================================================================== -->
+<!-- SECTION 1: DOCUMENT METADATA & TITLE                                       -->
+<!-- ========================================================================== -->
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FleetFlow — Fleet Management System</title>
+<!-- ========================================================================== -->
+<!-- SECTION 2: EXTERNAL STYLESHEETS & ICONS                                    -->
+<!-- ========================================================================== -->
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="sstyle.css?v=2.2">
+  <link rel="stylesheet" href="style.css?v=2.2">
 </head>
 <body>
+<!-- ========================================================================== -->
+<!-- SECTION 3: SHARED APPLICATION SHELL & BACKDROP                             -->
+<!-- ========================================================================== -->
   <div class="app">
     <div class="sidebar-backdrop" id="sidebar-backdrop" hidden></div>
 
+<!-- ========================================================================== -->
+<!-- SECTION 4: SIDEBAR & APPLICATION NAVIGATION                                -->
+<!-- ========================================================================== -->
     <aside class="sidebar" id="sidebar" aria-label="Main navigation">
       <div class="brand">
         <span class="brand-mark" aria-hidden="true">
@@ -65,6 +78,9 @@
     </aside>
 
     <div class="shell">
+<!-- ========================================================================== -->
+<!-- SECTION 5: HEADER & TOPBAR CONTROLS                                        -->
+<!-- ========================================================================== -->
       <header class="topbar">
         <div class="topbar-left">
           <button class="icon-btn menu-toggle" id="menu-toggle" aria-label="Open navigation menu" aria-controls="sidebar">
@@ -105,7 +121,6 @@
             </button>
             <div class="panel user-menu" id="user-menu" hidden role="menu">
               <button type="button" role="menuitem" data-user-action="profile">Profile</button>
-              <button type="button" role="menuitem" data-user-action="settings">Settings</button>
               <button type="button" role="menuitem" data-user-action="logout">Logout</button>
             </div>
           </div>
@@ -113,6 +128,9 @@
       </header>
 
       <main class="content">
+<!-- ========================================================================== -->
+<!-- SECTION 7: DASHBOARD CONTENT & KPIS                                        -->
+<!-- ========================================================================== -->
         <section class="page is-visible" id="page-dashboard" aria-labelledby="page-title">
           <div class="kpi-grid" id="kpi-grid"></div>
 
@@ -145,6 +163,9 @@
           </article>
         </section>
 
+<!-- ========================================================================== -->
+<!-- SECTION 8: VEHICLES MANAGEMENT                                             -->
+<!-- ========================================================================== -->
         <section class="page" id="page-vehicles" hidden>
           <div class="action-bar">
             <label class="sr-only" for="vehicle-search">Search vehicles</label>
@@ -178,6 +199,9 @@
           </div>
         </section>
 
+<!-- ========================================================================== -->
+<!-- SECTION 9: DRIVERS MANAGEMENT                                              -->
+<!-- ========================================================================== -->
         <section class="page admin-only" id="page-drivers" hidden>
           <div class="action-bar">
             <label class="sr-only" for="driver-search">Search drivers</label>
@@ -207,6 +231,9 @@
           </div>
         </section>
 
+<!-- ========================================================================== -->
+<!-- SECTION 11: FUEL MANAGEMENT                                                -->
+<!-- ========================================================================== -->
         <section class="page" id="page-fuel" hidden>
           <div class="action-bar">
             <label class="sr-only" for="fuel-search">Search fuel entries</label>
@@ -237,6 +264,9 @@
           </div>
         </section>
 
+<!-- ========================================================================== -->
+<!-- SECTION 12: MAINTENANCE MANAGEMENT                                         -->
+<!-- ========================================================================== -->
         <section class="page" id="page-maintenance" hidden>
           <div class="action-bar">
             <p class="muted">Tickets are grouped by due date. Overdue items need immediate attention.</p>
@@ -245,6 +275,9 @@
           <div class="kanban" id="maintenance-board"></div>
         </section>
 
+<!-- ========================================================================== -->
+<!-- SECTION 13: ROUTES & TRIPS MANAGEMENT                                      -->
+<!-- ========================================================================== -->
         <section class="page" id="page-routes" hidden>
           <article class="card map-card">
             <div class="map-head">
@@ -258,7 +291,7 @@
               </div>
             </div>
 
-            <div id="route-map" class="route-map-container" style="height: 380px; width: 100%; border-radius: 12px; position: relative; overflow: hidden; margin-top: 12px; background: #e2e8f0;">
+            <div id="route-map" class="route-map-container" style="height: 380px; width: 100%; border-radius: 12px; position: relative; overflow: hidden; margin-top: 12px; background: #e2e8f0; z-index: 1; isolation: isolate;">
               <!-- Real Leaflet interactive map -->
               <div id="map-loading" class="map-loading-overlay" hidden>
                 <div class="spinner"></div>
@@ -299,6 +332,9 @@
           </div>
         </section>
 
+<!-- ========================================================================== -->
+<!-- SECTION 10: USERS & PERMISSIONS MANAGEMENT                                 -->
+<!-- ========================================================================== -->
         <section class="page admin-only" id="page-users" hidden>
           <div class="action-bar">
             <label class="sr-only" for="user-search">Search users</label>
@@ -339,6 +375,9 @@
     </div>
   </div>
 
+<!-- ========================================================================== -->
+<!-- SECTION 14: FORMS, MODALS & SHARED OVERLAYS                                -->
+<!-- ========================================================================== -->
   <div class="modal-overlay" id="modal-overlay" hidden>
     <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div class="modal-header">
@@ -349,9 +388,15 @@
     </div>
   </div>
 
+<!-- ========================================================================== -->
+<!-- SECTION 15: NOTIFICATIONS & TOAST STACK                                    -->
+<!-- ========================================================================== -->
   <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="true"></div>
 
+<!-- ========================================================================== -->
+<!-- SECTION 16: JAVASCRIPT LOADING                                             -->
+<!-- ========================================================================== -->
   <script src="vendor/leaflet/leaflet.js"></script>
-  <script src="script.js"></script>
+  <script src="script.js?v=2.2"></script>
 </body>
 </html>

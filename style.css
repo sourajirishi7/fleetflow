@@ -1,3 +1,6 @@
+/* ========================================================================== */
+/* SECTION 1: IMPORTS & DESIGN TOKENS                                         */
+/* ========================================================================== */
 :root {
   --sidebar: #1e293b;
   --sidebar-2: #0f172a;
@@ -25,6 +28,9 @@
   --focus: 0 0 0 3px rgba(79, 70, 229, 0.35);
 }
 
+/* ========================================================================== */
+/* SECTION 2: RESET & BASE STYLES                                             */
+/* ========================================================================== */
 *,
 *::before,
 *::after {
@@ -37,6 +43,9 @@ body {
   min-height: 100%;
 }
 
+/* ========================================================================== */
+/* SECTION 3: TYPOGRAPHY                                                      */
+/* ========================================================================== */
 body {
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
   background: var(--bg);
@@ -59,22 +68,17 @@ svg {
   fill: currentColor;
 }
 
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  border: 0;
-}
-
+/* ========================================================================== */
+/* SECTION 5: SHARED LAYOUT & CONTAINERS                                      */
+/* ========================================================================== */
 .app {
   display: flex;
   min-height: 100vh;
 }
 
+/* ========================================================================== */
+/* SECTION 6: SIDEBAR & NAVIGATION                                            */
+/* ========================================================================== */
 .sidebar {
   width: 260px;
   background: linear-gradient(180deg, var(--sidebar) 0%, var(--sidebar-2) 100%);
@@ -156,18 +160,6 @@ svg {
   box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
 }
 
-.nav-item:focus-visible,
-.icon-btn:focus-visible,
-.btn:focus-visible,
-.user-chip:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-.chip:focus-visible {
-  outline: none;
-  box-shadow: var(--focus);
-}
-
 .sidebar-foot {
   padding: 16px 20px 22px;
   font-size: 0.75rem;
@@ -185,6 +177,9 @@ textarea:focus-visible,
   flex-direction: column;
 }
 
+/* ========================================================================== */
+/* SECTION 7: HEADER & USER CONTROLS                                          */
+/* ========================================================================== */
 .topbar {
   display: flex;
   justify-content: space-between;
@@ -401,6 +396,12 @@ textarea:focus-visible,
   background: #f1f5f9;
 }
 
+/* ========================================================================== */
+/* SECTION 8: LOGIN & REGISTRATION INTEGRATION STYLES                         */
+/* (Core dedicated split-screen styles are contained in login.html)           */
+/* ========================================================================== */
+
+/* Content & Page Containers */
 .content {
   padding: 22px 24px 40px;
 }
@@ -413,6 +414,9 @@ textarea:focus-visible,
   display: block;
 }
 
+/* ========================================================================== */
+/* SECTION 9: DASHBOARD CHARTS & KPI METRICS                                  */
+/* ========================================================================== */
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -611,6 +615,10 @@ textarea:focus-visible,
   font-size: 0.78rem;
 }
 
+/* ========================================================================== */
+/* SECTION 4: SHARED BUTTONS & FORM CONTROLS                                  */
+/* (Applied across Vehicles, Drivers, Users, Fuel & Maintenance)              */
+/* ========================================================================== */
 .action-bar {
   display: flex;
   flex-wrap: wrap;
@@ -692,6 +700,10 @@ textarea:focus-visible,
   color: var(--primary);
 }
 
+/* ========================================================================== */
+/* SECTION 16: TABLES, FILTERS & STATUS BADGES                                */
+/* (Shared data presentation across Vehicles, Drivers, Fuel, Users & Routes)  */
+/* ========================================================================== */
 .table-wrap {
   overflow-x: auto;
   padding: 0;
@@ -759,6 +771,17 @@ tbody tr:hover {
   text-decoration: underline;
 }
 
+/* ========================================================================== */
+/* SECTION 10: VEHICLES STYLING & STATUS SPECIALIZATIONS                      */
+/* SECTION 11: DRIVERS STYLING & FILTER SPECIALIZATIONS                       */
+/* SECTION 12: USERS & PERMISSIONS INTERFACE SPECIALIZATIONS                  */
+/* SECTION 13: FUEL RECORD STYLING SPECIALIZATIONS                            */
+/* (Utilize shared Section 4 controls and Section 16 tables)                  */
+/* ========================================================================== */
+
+/* ========================================================================== */
+/* SECTION 14: MAINTENANCE MANAGEMENT & KANBAN                                */
+/* ========================================================================== */
 .kanban {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -813,9 +836,14 @@ tbody tr:hover {
   color: #475569;
 }
 
+/* ========================================================================== */
+/* SECTION 15: ROUTES & TRIPS INTERACTIVE MAP                                 */
+/* ========================================================================== */
 .map-card {
   margin-bottom: 16px;
   overflow: hidden;
+  position: relative;
+  z-index: 1;
 }
 
 .map-head {
@@ -855,6 +883,14 @@ tbody tr:hover {
   margin-top: 12px;
   background: #e2e8f0;
   border: 1px solid var(--line);
+  z-index: 1;
+  isolation: isolate;
+}
+
+.route-map-container .leaflet-container {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
 }
 
 .map-loading-overlay,
@@ -927,6 +963,9 @@ tr.row-click.is-selected td:first-child strong {
   color: var(--primary);
 }
 
+/* ========================================================================== */
+/* SECTION 17: MODALS, FORMS & TOAST NOTIFICATIONS                            */
+/* ========================================================================== */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -999,6 +1038,36 @@ tr.row-click.is-selected td:first-child strong {
   border-radius: 10px;
   padding: 9px 10px;
   background: #f8fafc;
+}
+
+.field input[type="checkbox"],
+.field input[type="radio"] {
+  width: auto;
+  border-radius: 4px;
+  padding: 0;
+  background: transparent;
+}
+
+.checkbox-label {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  cursor: pointer !important;
+  margin: 0 !important;
+  width: fit-content !important;
+  font-size: 0.88rem !important;
+  font-weight: 600 !important;
+  color: var(--text) !important;
+  user-select: none !important;
+}
+
+.checkbox-input {
+  width: 16px !important;
+  height: 16px !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+  accent-color: var(--primary) !important;
 }
 
 .field textarea {
@@ -1078,6 +1147,9 @@ tr.row-click.is-selected td:first-child strong {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* ========================================================================== */
+/* SECTION 18: RESPONSIVE LAYOUTS & MEDIA QUERIES                             */
+/* ========================================================================== */
 .sidebar-backdrop {
   display: none;
 }
@@ -1184,6 +1256,32 @@ tr.row-click.is-selected td:first-child strong {
   }
 }
 
+/* ========================================================================== */
+/* SECTION 19: ACCESSIBILITY, FOCUS STATES & UTILITY SELECTORS                */
+/* ========================================================================== */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.nav-item:focus-visible,
+.icon-btn:focus-visible,
+.btn:focus-visible,
+.user-chip:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+.chip:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
 [hidden] {
   display: none !important;
 }
@@ -1191,4 +1289,3 @@ tr.row-click.is-selected td:first-child strong {
 body.role-employee .admin-only {
   display: none !important;
 }
-

@@ -1,0 +1,1112 @@
+{
+  "generatedAt": "2026-10-11T14:20:22.479Z",
+  "environment": "FleetFlow Enterprise Production Reference",
+  "frontend": [
+    {
+      "name": "checkAuthAndInit",
+      "file": "script.js",
+      "startLine": 68,
+      "endLine": 100,
+      "purpose": "Verify JWT session cookie via /api/auth/me and initiate dashboard loading",
+      "calledBy": "DOMContentLoaded"
+    },
+    {
+      "name": "applyEmployeeNavLabels",
+      "file": "script.js",
+      "startLine": 106,
+      "endLine": 123,
+      "purpose": "Customize navigation labels and page descriptions for Employee role",
+      "calledBy": "checkAuthAndInit"
+    },
+    {
+      "name": "applyAdminNavLabels",
+      "file": "script.js",
+      "startLine": 125,
+      "endLine": 144,
+      "purpose": "Apply full administrative navigation labels and copy",
+      "calledBy": "checkAuthAndInit"
+    },
+    {
+      "name": "updateUserChip",
+      "file": "script.js",
+      "startLine": 146,
+      "endLine": 161,
+      "purpose": "Render user initials, full name and role badge in top navigation bar",
+      "calledBy": "checkAuthAndInit, submitProfile"
+    },
+    {
+      "name": "loadAllFromBackend",
+      "file": "script.js",
+      "startLine": 167,
+      "endLine": 211,
+      "purpose": "Fetch all operational datasets via REST APIs (scoped by user role & tenant)",
+      "calledBy": "checkAuthAndInit, CRUD submits"
+    },
+    {
+      "name": "renderAll",
+      "file": "script.js",
+      "startLine": 213,
+      "endLine": 226,
+      "purpose": "Dispatch rendering pipeline across all application tabs and views",
+      "calledBy": "loadAllFromBackend"
+    },
+    {
+      "name": "bindEvents",
+      "file": "script.js",
+      "startLine": 232,
+      "endLine": 382,
+      "purpose": "Register all DOM click, input, filter and form event listeners",
+      "calledBy": "checkAuthAndInit"
+    },
+    {
+      "name": "handleLogout",
+      "file": "script.js",
+      "startLine": 384,
+      "endLine": 394,
+      "purpose": "Terminate authentication session via POST /api/auth/logout",
+      "calledBy": "user menu logout button"
+    },
+    {
+      "name": "renderNotifications",
+      "file": "script.js",
+      "startLine": 396,
+      "endLine": 430,
+      "purpose": "Compute alert counts for overdue tickets & offline vehicles; render notify popover",
+      "calledBy": "renderAll, bindEvents"
+    },
+    {
+      "name": "showSection",
+      "file": "script.js",
+      "startLine": 436,
+      "endLine": 470,
+      "purpose": "Switch active tab, toggle DOM page visibility, update topbar header title",
+      "calledBy": "nav buttons, search clicks"
+    },
+    {
+      "name": "toggleSidebar",
+      "file": "script.js",
+      "startLine": 472,
+      "endLine": 481,
+      "purpose": "Toggle mobile slide-out navigation drawer and backdrop",
+      "calledBy": "menu-toggle button"
+    },
+    {
+      "name": "closeSidebar",
+      "file": "script.js",
+      "startLine": 483,
+      "endLine": 491,
+      "purpose": "Dismiss mobile navigation drawer",
+      "calledBy": "backdrop click, nav clicks"
+    },
+    {
+      "name": "togglePanel",
+      "file": "script.js",
+      "startLine": 493,
+      "endLine": 501,
+      "purpose": "Toggle dropdown popovers (notifications, user profile menu)",
+      "calledBy": "topbar icon buttons"
+    },
+    {
+      "name": "closePopovers",
+      "file": "script.js",
+      "startLine": 503,
+      "endLine": 518,
+      "purpose": "Close all active dropdown popovers and search flyouts",
+      "calledBy": "global document clicks"
+    },
+    {
+      "name": "getDriverById",
+      "file": "script.js",
+      "startLine": 524,
+      "endLine": 526,
+      "purpose": "Lookup driver object in state cache by unique string ID",
+      "calledBy": "getDriverName, vehicle renderers"
+    },
+    {
+      "name": "getVehicleById",
+      "file": "script.js",
+      "startLine": 528,
+      "endLine": 530,
+      "purpose": "Lookup vehicle object in state cache by unique string ID",
+      "calledBy": "getVehicleName, trip renderers"
+    },
+    {
+      "name": "getDriverName",
+      "file": "script.js",
+      "startLine": 532,
+      "endLine": 535,
+      "purpose": "Resolve driver display name or return 'Unassigned'",
+      "calledBy": "renderVehicles, renderFuel, renderRoutes"
+    },
+    {
+      "name": "getVehicleName",
+      "file": "script.js",
+      "startLine": 537,
+      "endLine": 540,
+      "purpose": "Format vehicle identifier and make/model string",
+      "calledBy": "renderTrips, selectTripRoute"
+    },
+    {
+      "name": "formatNumber",
+      "file": "script.js",
+      "startLine": 542,
+      "endLine": 544,
+      "purpose": "Format integer with localized thousand separators (en-IN)",
+      "calledBy": "renderers, metrics"
+    },
+    {
+      "name": "formatMoney",
+      "file": "script.js",
+      "startLine": 546,
+      "endLine": 548,
+      "purpose": "Format rupee monetary string with INR symbol (₹)",
+      "calledBy": "renderDashboard, renderFuel, renderMaintenance"
+    },
+    {
+      "name": "statusBadge",
+      "file": "script.js",
+      "startLine": 550,
+      "endLine": 572,
+      "purpose": "Generate colored HTML status badge pill element",
+      "calledBy": "table renderers, popups"
+    },
+    {
+      "name": "escapeHtml",
+      "file": "script.js",
+      "startLine": 574,
+      "endLine": 581,
+      "purpose": "Sanitize user-provided strings against Cross-Site Scripting (XSS)",
+      "calledBy": "all HTML template generators"
+    },
+    {
+      "name": "renderDashboard",
+      "file": "script.js",
+      "startLine": 587,
+      "endLine": 614,
+      "purpose": "Render KPI cards, fuel consumption bar chart, donut chart, and activity stream",
+      "calledBy": "renderAll"
+    },
+    {
+      "name": "kpiCard",
+      "file": "script.js",
+      "startLine": 616,
+      "endLine": 621,
+      "purpose": "HTML component generator for top metric KPI summary cards",
+      "calledBy": "renderDashboard"
+    },
+    {
+      "name": "monthlyFuelSpend",
+      "file": "script.js",
+      "startLine": 623,
+      "endLine": 627,
+      "purpose": "Calculate current month total fuel expenditure",
+      "calledBy": "renderDashboard"
+    },
+    {
+      "name": "renderFuelChart",
+      "file": "script.js",
+      "startLine": 629,
+      "endLine": 649,
+      "purpose": "Render weekly 7-day fuel consumption bar graph",
+      "calledBy": "renderDashboard"
+    },
+    {
+      "name": "renderStatusDonut",
+      "file": "script.js",
+      "startLine": 651,
+      "endLine": 674,
+      "purpose": "Frontend operational utility function",
+      "calledBy": "Internal module caller"
+    },
+    {
+      "name": "legendItem",
+      "file": "script.js",
+      "startLine": 676,
+      "endLine": 679,
+      "purpose": "HTML component for chart legends",
+      "calledBy": "renderDonut"
+    },
+    {
+      "name": "renderActivity",
+      "file": "script.js",
+      "startLine": 681,
+      "endLine": 689,
+      "purpose": "Render operational event stream in recent activity feed",
+      "calledBy": "renderDashboard"
+    },
+    {
+      "name": "renderVehicles",
+      "file": "script.js",
+      "startLine": 695,
+      "endLine": 726,
+      "purpose": "Filter and render vehicle inventory table rows and view actions",
+      "calledBy": "renderAll, filter inputs"
+    },
+    {
+      "name": "emptyRow",
+      "file": "script.js",
+      "startLine": 728,
+      "endLine": 730,
+      "purpose": "Generate empty state table row spanning all columns",
+      "calledBy": "table renderers"
+    },
+    {
+      "name": "renderDrivers",
+      "file": "script.js",
+      "startLine": 736,
+      "endLine": 769,
+      "purpose": "Render driver roster with license, safety score and reassignment links",
+      "calledBy": "renderAll, filter chips"
+    },
+    {
+      "name": "calculateFleetAverage",
+      "file": "script.js",
+      "startLine": 775,
+      "endLine": 779,
+      "purpose": "Compute mean km/L fuel efficiency across all recorded fuel logs",
+      "calledBy": "renderFuel"
+    },
+    {
+      "name": "calculateFuelEfficiency",
+      "file": "script.js",
+      "startLine": 781,
+      "endLine": 791,
+      "purpose": "Calculate incremental km/L efficiency between consecutive fill-ups",
+      "calledBy": "renderFuel"
+    },
+    {
+      "name": "renderFuelFilters",
+      "file": "script.js",
+      "startLine": 793,
+      "endLine": 802,
+      "purpose": "Populate vehicle filter dropdown options in fuel view",
+      "calledBy": "renderAll"
+    },
+    {
+      "name": "renderFuel",
+      "file": "script.js",
+      "startLine": 804,
+      "endLine": 838,
+      "purpose": "Filter and render fuel log records table with efficiency indicators",
+      "calledBy": "renderAll, filter inputs"
+    },
+    {
+      "name": "classifyMaintenance",
+      "file": "script.js",
+      "startLine": 844,
+      "endLine": 849,
+      "purpose": "Categorize maintenance tickets into overdue, upcoming, or completed",
+      "calledBy": "renderMaintenance"
+    },
+    {
+      "name": "renderMaintenance",
+      "file": "script.js",
+      "startLine": 851,
+      "endLine": 872,
+      "purpose": "Render kanban board columns for fleet maintenance lifecycle",
+      "calledBy": "renderAll"
+    },
+    {
+      "name": "kanbanColumn",
+      "file": "script.js",
+      "startLine": 874,
+      "endLine": 889,
+      "purpose": "HTML generator for individual maintenance kanban status columns",
+      "calledBy": "renderMaintenance"
+    },
+    {
+      "name": "toggleTicketStatus",
+      "file": "script.js",
+      "startLine": 891,
+      "endLine": 909,
+      "purpose": "Send PATCH request to mark maintenance ticket Completed",
+      "calledBy": "kanban click handler"
+    },
+    {
+      "name": "renderRoutes",
+      "file": "script.js",
+      "startLine": 915,
+      "endLine": 965,
+      "purpose": "Render trip dispatch log table and road corridor details",
+      "calledBy": "renderAll"
+    },
+    {
+      "name": "initOrUpdateRouteMap",
+      "file": "script.js",
+      "startLine": 974,
+      "endLine": 1005,
+      "purpose": "Initialize Leaflet.js interactive map container and OpenStreetMap tile layer",
+      "calledBy": "showSection, renderRoutes"
+    },
+    {
+      "name": "selectTripRoute",
+      "file": "script.js",
+      "startLine": 1007,
+      "endLine": 1181,
+      "purpose": "Fetch OSRM highway geometry and render driving trajectory on map",
+      "calledBy": "renderRoutes, trip row clicks"
+    },
+    {
+      "name": "updateTripStatus",
+      "file": "script.js",
+      "startLine": 1183,
+      "endLine": 1203,
+      "purpose": "Send PATCH request to update trip status (On Time, Delayed, etc.)",
+      "calledBy": "route status select change"
+    },
+    {
+      "name": "renderUsers",
+      "file": "script.js",
+      "startLine": 1209,
+      "endLine": 1245,
+      "purpose": "Render employee accounts table with role and status toggles",
+      "calledBy": "renderAll, user filter changes"
+    },
+    {
+      "name": "handleToggleUserStatus",
+      "file": "script.js",
+      "startLine": 1247,
+      "endLine": 1265,
+      "purpose": "Send PATCH request to activate or deactivate employee login account",
+      "calledBy": "user table action buttons"
+    },
+    {
+      "name": "runGlobalSearch",
+      "file": "script.js",
+      "startLine": 1271,
+      "endLine": 1324,
+      "purpose": "Perform cross-entity search across vehicles, drivers and routes",
+      "calledBy": "global-search input"
+    },
+    {
+      "name": "openModal",
+      "file": "script.js",
+      "startLine": 1330,
+      "endLine": 1402,
+      "purpose": "Configure and display modal dialog with specific form template",
+      "calledBy": "add buttons, view actions"
+    },
+    {
+      "name": "closeModal",
+      "file": "script.js",
+      "startLine": 1404,
+      "endLine": 1412,
+      "purpose": "Hide active modal dialog and clear form content",
+      "calledBy": "modal close button, cancel buttons"
+    },
+    {
+      "name": "optionList",
+      "file": "script.js",
+      "startLine": 1414,
+      "endLine": 1419,
+      "purpose": "Generate HTML option elements for select dropdowns",
+      "calledBy": "form generators"
+    },
+    {
+      "name": "field",
+      "file": "script.js",
+      "startLine": 1421,
+      "endLine": 1428,
+      "purpose": "Generate form field container with label, input and validation error slot",
+      "calledBy": "form generators"
+    },
+    {
+      "name": "selectField",
+      "file": "script.js",
+      "startLine": 1430,
+      "endLine": 1435,
+      "purpose": "Frontend operational utility function",
+      "calledBy": "Internal module caller"
+    },
+    {
+      "name": "formActions",
+      "file": "script.js",
+      "startLine": 1437,
+      "endLine": 1440,
+      "purpose": "Frontend operational utility function",
+      "calledBy": "Internal module caller"
+    },
+    {
+      "name": "vehicleFormHtml",
+      "file": "script.js",
+      "startLine": 1442,
+      "endLine": 1467,
+      "purpose": "Generate Add Vehicle modal form markup",
+      "calledBy": "openModal('add-vehicle')"
+    },
+    {
+      "name": "driverFormHtml",
+      "file": "script.js",
+      "startLine": 1469,
+      "endLine": 1484,
+      "purpose": "Generate Add Driver modal form markup with decoupled driver profile",
+      "calledBy": "openModal('add-driver')"
+    },
+    {
+      "name": "fuelFormHtml",
+      "file": "script.js",
+      "startLine": 1486,
+      "endLine": 1498,
+      "purpose": "Generate Add Fuel Log modal form markup",
+      "calledBy": "openModal('add-fuel')"
+    },
+    {
+      "name": "maintenanceFormHtml",
+      "file": "script.js",
+      "startLine": 1500,
+      "endLine": 1528,
+      "purpose": "Generate Schedule Service modal form markup",
+      "calledBy": "openModal('add-maintenance')"
+    },
+    {
+      "name": "reassignFormHtml",
+      "file": "script.js",
+      "startLine": 1530,
+      "endLine": 1545,
+      "purpose": "Generate Driver Vehicle Reassignment modal form markup",
+      "calledBy": "openModal('reassign')"
+    },
+    {
+      "name": "userFormHtml",
+      "file": "script.js",
+      "startLine": 1547,
+      "endLine": 1571,
+      "purpose": "Generate Create Employee Account modal form markup",
+      "calledBy": "openModal('add-user')"
+    },
+    {
+      "name": "profileFormHtml",
+      "file": "script.js",
+      "startLine": 1573,
+      "endLine": 1583,
+      "purpose": "Generate User Profile update modal form markup",
+      "calledBy": "openModal('profile')"
+    },
+    {
+      "name": "vehicleDetailsHtml",
+      "file": "script.js",
+      "startLine": 1586,
+      "endLine": 1607,
+      "purpose": "Generate detailed vehicle specification and trip history dialog",
+      "calledBy": "openModal('vehicle-details')"
+    },
+    {
+      "name": "detail",
+      "file": "script.js",
+      "startLine": 1609,
+      "endLine": 1611,
+      "purpose": "Generate definition list key-value item for vehicle details",
+      "calledBy": "vehicleDetailsHtml"
+    },
+    {
+      "name": "handleModalSubmit",
+      "file": "script.js",
+      "startLine": 1617,
+      "endLine": 1639,
+      "purpose": "Route form submit event to corresponding entity creation handler",
+      "calledBy": "modal form submit"
+    },
+    {
+      "name": "setFieldError",
+      "file": "script.js",
+      "startLine": 1641,
+      "endLine": 1646,
+      "purpose": "Frontend operational utility function",
+      "calledBy": "Internal module caller"
+    },
+    {
+      "name": "clearErrors",
+      "file": "script.js",
+      "startLine": 1648,
+      "endLine": 1656,
+      "purpose": "Frontend operational utility function",
+      "calledBy": "Internal module caller"
+    },
+    {
+      "name": "required",
+      "file": "script.js",
+      "startLine": 1658,
+      "endLine": 1670,
+      "purpose": "Frontend operational utility function",
+      "calledBy": "Internal module caller"
+    },
+    {
+      "name": "submitVehicle",
+      "file": "script.js",
+      "startLine": 1672,
+      "endLine": 1704,
+      "purpose": "Validate and POST new vehicle to /api/vehicles in MongoDB",
+      "calledBy": "handleModalSubmit"
+    },
+    {
+      "name": "submitDriver",
+      "file": "script.js",
+      "startLine": 1706,
+      "endLine": 1740,
+      "purpose": "Validate and POST new decoupled driver profile to /api/drivers",
+      "calledBy": "handleModalSubmit"
+    },
+    {
+      "name": "submitFuel",
+      "file": "script.js",
+      "startLine": 1742,
+      "endLine": 1777,
+      "purpose": "Validate and POST fuel log to /api/fuel in MongoDB",
+      "calledBy": "handleModalSubmit"
+    },
+    {
+      "name": "submitMaintenance",
+      "file": "script.js",
+      "startLine": 1779,
+      "endLine": 1806,
+      "purpose": "Validate and POST maintenance record to /api/maintenance",
+      "calledBy": "handleModalSubmit"
+    },
+    {
+      "name": "submitReassign",
+      "file": "script.js",
+      "startLine": 1808,
+      "endLine": 1827,
+      "purpose": "Validate and PUT driver vehicle reassignment to /api/drivers/:id/assign",
+      "calledBy": "handleModalSubmit"
+    },
+    {
+      "name": "submitUser",
+      "file": "script.js",
+      "startLine": 1829,
+      "endLine": 1890,
+      "purpose": "Validate and POST new employee user account to /api/users",
+      "calledBy": "handleModalSubmit"
+    },
+    {
+      "name": "submitProfile",
+      "file": "script.js",
+      "startLine": 1892,
+      "endLine": 1916,
+      "purpose": "Validate and PUT current user profile update to /api/users/profile",
+      "calledBy": "handleModalSubmit"
+    },
+    {
+      "name": "showToast",
+      "file": "script.js",
+      "startLine": 1922,
+      "endLine": 1932,
+      "purpose": "Display ephemeral toast notification badge in bottom-right stack",
+      "calledBy": "all API feedback handlers"
+    }
+  ],
+  "backend": [
+    {
+      "name": "startServer",
+      "file": "server.js",
+      "startLine": 83,
+      "endLine": 93,
+      "purpose": "Connect to MongoDB and start Express HTTP server listener",
+      "calledBy": "server.js entrypoint"
+    },
+    {
+      "name": "maskUri",
+      "file": "src/config/db.js",
+      "startLine": 8,
+      "endLine": 15,
+      "purpose": "Sanitize MongoDB URI removing username/password before logging or API return",
+      "calledBy": "health check, db connection"
+    },
+    {
+      "name": "connectDB",
+      "file": "src/config/db.js",
+      "startLine": 20,
+      "endLine": 45,
+      "purpose": "Initialize Mongoose connection to MongoDB with retry logic & event listeners",
+      "calledBy": "server.js startServer"
+    },
+    {
+      "name": "handleGracefulShutdown",
+      "file": "src/config/db.js",
+      "startLine": 50,
+      "endLine": 59,
+      "purpose": "Safely close database connections and stop server on SIGINT/SIGTERM",
+      "calledBy": "process lifecycle events"
+    },
+    {
+      "name": "requireAuth",
+      "file": "src/middleware/auth.js",
+      "startLine": 8,
+      "endLine": 44,
+      "purpose": "Middleware enforcing authenticated session from JWT cookie or Bearer token",
+      "calledBy": "all protected routes"
+    },
+    {
+      "name": "requireRole",
+      "file": "src/middleware/auth.js",
+      "startLine": 49,
+      "endLine": 65,
+      "purpose": "Role-Based Access Control middleware restricting routes to specific roles (ADMIN)",
+      "calledBy": "Admin-only routes"
+    },
+    {
+      "name": "notFoundHandler",
+      "file": "src/middleware/errorHandler.js",
+      "startLine": 6,
+      "endLine": 12,
+      "purpose": "Catch unhandled routes and return uniform 404 JSON response",
+      "calledBy": "server.js"
+    },
+    {
+      "name": "errorHandler",
+      "file": "src/middleware/errorHandler.js",
+      "startLine": 17,
+      "endLine": 55,
+      "purpose": "Global error handler for validation, cast, duplicate key & syntax errors",
+      "calledBy": "server.js"
+    },
+    {
+      "name": "registerAdmin",
+      "file": "src/controllers/authController.js",
+      "startLine": 11,
+      "endLine": 132,
+      "purpose": "Create new Organization and initial Admin user with bcrypt hash",
+      "calledBy": "POST /api/auth/register-admin"
+    },
+    {
+      "name": "login",
+      "file": "src/controllers/authController.js",
+      "startLine": 139,
+      "endLine": 176,
+      "purpose": "Authenticate credentials, generate JWT and set secure HTTP-only cookie",
+      "calledBy": "POST /api/auth/login"
+    },
+    {
+      "name": "logout",
+      "file": "src/controllers/authController.js",
+      "startLine": 183,
+      "endLine": 186,
+      "purpose": "Clear authentication session cookie and blacklist token",
+      "calledBy": "POST /api/auth/logout"
+    },
+    {
+      "name": "getMe",
+      "file": "src/controllers/authController.js",
+      "startLine": 193,
+      "endLine": 208,
+      "purpose": "Return authenticated user identity and organization metadata",
+      "calledBy": "GET /api/auth/me"
+    },
+    {
+      "name": "updateProfile",
+      "file": "src/controllers/authController.js",
+      "startLine": 215,
+      "endLine": 250,
+      "purpose": "Allow authenticated user to update their own name, phone, or password",
+      "calledBy": "PUT /api/users/profile"
+    },
+    {
+      "name": "getDashboardStats",
+      "file": "src/controllers/dashboardController.js",
+      "startLine": 15,
+      "endLine": 158,
+      "purpose": "Aggregate tenant-scoped fleet KPIs: active vehicles, overdue tickets, fuel spend",
+      "calledBy": "GET /api/dashboard/stats"
+    },
+    {
+      "name": "getActivities",
+      "file": "src/controllers/dashboardController.js",
+      "startLine": 165,
+      "endLine": 192,
+      "purpose": "Retrieve tenant operational activity log feed scoped by organizationId",
+      "calledBy": "GET /api/dashboard/activities"
+    },
+    {
+      "name": "getNextDriverId",
+      "file": "src/controllers/driverController.js",
+      "startLine": 11,
+      "endLine": 19,
+      "purpose": "Compute next sequential driver ID string (e.g. D005) for tenant",
+      "calledBy": "createDriver"
+    },
+    {
+      "name": "getDrivers",
+      "file": "src/controllers/driverController.js",
+      "startLine": 26,
+      "endLine": 62,
+      "purpose": "Retrieve all drivers for tenant organization (Admin role required)",
+      "calledBy": "GET /api/drivers"
+    },
+    {
+      "name": "getDriverById",
+      "file": "src/controllers/driverController.js",
+      "startLine": 69,
+      "endLine": 103,
+      "purpose": "Fetch specific driver by ID with tenant isolation check",
+      "calledBy": "GET /api/drivers/:id"
+    },
+    {
+      "name": "getMyDriverProfile",
+      "file": "src/controllers/driverController.js",
+      "startLine": 110,
+      "endLine": 133,
+      "purpose": "Retrieve driver profile linked to current employee login",
+      "calledBy": "GET /api/drivers/me"
+    },
+    {
+      "name": "createDriver",
+      "file": "src/controllers/driverController.js",
+      "startLine": 140,
+      "endLine": 240,
+      "purpose": "Create decoupled driver document without creating user login account",
+      "calledBy": "POST /api/drivers"
+    },
+    {
+      "name": "updateDriver",
+      "file": "src/controllers/driverController.js",
+      "startLine": 247,
+      "endLine": 320,
+      "purpose": "Update driver properties with organization isolation check",
+      "calledBy": "PUT /api/drivers/:id"
+    },
+    {
+      "name": "assignVehicle",
+      "file": "src/controllers/driverController.js",
+      "startLine": 327,
+      "endLine": 388,
+      "purpose": "Reassign driver to vehicle and synchronize vehicle assignedDriver ID",
+      "calledBy": "PUT /api/drivers/:id/assign"
+    },
+    {
+      "name": "deleteDriver",
+      "file": "src/controllers/driverController.js",
+      "startLine": 395,
+      "endLine": 416,
+      "purpose": "Remove driver and unlink associated vehicle",
+      "calledBy": "DELETE /api/drivers/:id"
+    },
+    {
+      "name": "getNextFuelId",
+      "file": "src/controllers/fuelController.js",
+      "startLine": 10,
+      "endLine": 18,
+      "purpose": "Compute next sequential fuel transaction ID (e.g. F-105) for tenant",
+      "calledBy": "createFuelEntry"
+    },
+    {
+      "name": "getFuelEntries",
+      "file": "src/controllers/fuelController.js",
+      "startLine": 25,
+      "endLine": 86,
+      "purpose": "Fetch fuel records (Admin: all tenant; Employee: assigned vehicle only)",
+      "calledBy": "GET /api/fuel"
+    },
+    {
+      "name": "createFuelEntry",
+      "file": "src/controllers/fuelController.js",
+      "startLine": 93,
+      "endLine": 192,
+      "purpose": "Record fuel fill-up, validate non-decreasing odometer, and sync vehicle",
+      "calledBy": "POST /api/fuel"
+    },
+    {
+      "name": "getWeeklySummary",
+      "file": "src/controllers/fuelController.js",
+      "startLine": 199,
+      "endLine": 235,
+      "purpose": "Compute 7-day daily fuel consumption volumes for dashboard chart",
+      "calledBy": "GET /api/fuel/weekly-summary"
+    },
+    {
+      "name": "deleteFuelEntry",
+      "file": "src/controllers/fuelController.js",
+      "startLine": 242,
+      "endLine": 257,
+      "purpose": "Delete fuel transaction log entry with tenant scoping",
+      "calledBy": "DELETE /api/fuel/:id"
+    },
+    {
+      "name": "getNextMaintenanceId",
+      "file": "src/controllers/maintenanceController.js",
+      "startLine": 10,
+      "endLine": 18,
+      "purpose": "Compute next sequential maintenance ticket ID (e.g. M-105) for tenant",
+      "calledBy": "createMaintenanceRecord"
+    },
+    {
+      "name": "getMaintenanceRecords",
+      "file": "src/controllers/maintenanceController.js",
+      "startLine": 25,
+      "endLine": 71,
+      "purpose": "Fetch service tickets (Admin: all tenant; Employee: assigned vehicle only)",
+      "calledBy": "GET /api/maintenance"
+    },
+    {
+      "name": "createMaintenanceRecord",
+      "file": "src/controllers/maintenanceController.js",
+      "startLine": 78,
+      "endLine": 151,
+      "purpose": "Schedule maintenance service ticket with priority and due date",
+      "calledBy": "POST /api/maintenance"
+    },
+    {
+      "name": "updateMaintenanceStatus",
+      "file": "src/controllers/maintenanceController.js",
+      "startLine": 158,
+      "endLine": 203,
+      "purpose": "Update ticket status (Overdue, Upcoming, Completed)",
+      "calledBy": "PATCH /api/maintenance/:id/status"
+    },
+    {
+      "name": "deleteMaintenanceRecord",
+      "file": "src/controllers/maintenanceController.js",
+      "startLine": 210,
+      "endLine": 226,
+      "purpose": "Remove maintenance ticket entry with tenant isolation check",
+      "calledBy": "DELETE /api/maintenance/:id"
+    },
+    {
+      "name": "getNextTripId",
+      "file": "src/controllers/tripController.js",
+      "startLine": 11,
+      "endLine": 19,
+      "purpose": "Compute next sequential trip dispatch code (e.g. R-205) for tenant",
+      "calledBy": "createTrip"
+    },
+    {
+      "name": "getTrips",
+      "file": "src/controllers/tripController.js",
+      "startLine": 26,
+      "endLine": 95,
+      "purpose": "Fetch trip dispatches (Admin: all tenant; Employee: assigned trips only)",
+      "calledBy": "GET /api/trips"
+    },
+    {
+      "name": "getTripById",
+      "file": "src/controllers/tripController.js",
+      "startLine": 102,
+      "endLine": 126,
+      "purpose": "Retrieve single trip details with RBAC authorization check",
+      "calledBy": "GET /api/trips/:id"
+    },
+    {
+      "name": "createTrip",
+      "file": "src/controllers/tripController.js",
+      "startLine": 133,
+      "endLine": 206,
+      "purpose": "Dispatch new trip assignment for vehicle and driver",
+      "calledBy": "POST /api/trips"
+    },
+    {
+      "name": "updateTripStatus",
+      "file": "src/controllers/tripController.js",
+      "startLine": 213,
+      "endLine": 260,
+      "purpose": "Update trip operational state (On Time, Delayed, Completed)",
+      "calledBy": "PATCH /api/trips/:id/status"
+    },
+    {
+      "name": "updateTrip",
+      "file": "src/controllers/tripController.js",
+      "startLine": 267,
+      "endLine": 325,
+      "purpose": "Update complete trip record details with tenant isolation check",
+      "calledBy": "PUT /api/trips/:id"
+    },
+    {
+      "name": "deleteTrip",
+      "file": "src/controllers/tripController.js",
+      "startLine": 332,
+      "endLine": 348,
+      "purpose": "Cancel and remove trip dispatch entry with tenant isolation check",
+      "calledBy": "DELETE /api/trips/:id"
+    },
+    {
+      "name": "isValidLatLng",
+      "file": "src/controllers/tripController.js",
+      "startLine": 385,
+      "endLine": 390,
+      "purpose": "Validate latitude (-90 to 90) and longitude (-180 to 180) coordinates",
+      "calledBy": "geocodeLocation, resolveTripRoadRoute"
+    },
+    {
+      "name": "geocodeLocation",
+      "file": "src/controllers/tripController.js",
+      "startLine": 395,
+      "endLine": 439,
+      "purpose": "Resolve human-readable city/terminal name to geographic coordinates",
+      "calledBy": "resolveTripRoadRoute"
+    },
+    {
+      "name": "resolveTripRoadRoute",
+      "file": "src/controllers/tripController.js",
+      "startLine": 444,
+      "endLine": 556,
+      "purpose": "Query OSRM driving engine or fall back to high-resolution road path",
+      "calledBy": "getTripRoute"
+    },
+    {
+      "name": "getTripRoute",
+      "file": "src/controllers/tripController.js",
+      "startLine": 563,
+      "endLine": 590,
+      "purpose": "Query OSRM road network for real highway driving coordinates",
+      "calledBy": "GET /api/trips/:id/route"
+    },
+    {
+      "name": "getUsers",
+      "file": "src/controllers/userController.js",
+      "startLine": 11,
+      "endLine": 19,
+      "purpose": "Retrieve all employee and admin users in tenant organization",
+      "calledBy": "GET /api/users"
+    },
+    {
+      "name": "getUserById",
+      "file": "src/controllers/userController.js",
+      "startLine": 26,
+      "endLine": 47,
+      "purpose": "Fetch user record by ID with tenant isolation verification",
+      "calledBy": "GET /api/users/:id"
+    },
+    {
+      "name": "createUser",
+      "file": "src/controllers/userController.js",
+      "startLine": 54,
+      "endLine": 145,
+      "purpose": "Create employee login account linked to tenant organization",
+      "calledBy": "POST /api/users"
+    },
+    {
+      "name": "updateUser",
+      "file": "src/controllers/userController.js",
+      "startLine": 152,
+      "endLine": 189,
+      "purpose": "Update user profile details and role assignment with tenant verification",
+      "calledBy": "PUT /api/users/:id"
+    },
+    {
+      "name": "toggleUserStatus",
+      "file": "src/controllers/userController.js",
+      "startLine": 196,
+      "endLine": 231,
+      "purpose": "Toggle employee Active/Inactive status preventing login for deactivated",
+      "calledBy": "PATCH /api/users/:id/status"
+    },
+    {
+      "name": "deleteUser",
+      "file": "src/controllers/userController.js",
+      "startLine": 238,
+      "endLine": 260,
+      "purpose": "Delete employee account and unlink associated driver record",
+      "calledBy": "DELETE /api/users/:id"
+    },
+    {
+      "name": "getNextVehicleId",
+      "file": "src/controllers/vehicleController.js",
+      "startLine": 11,
+      "endLine": 19,
+      "purpose": "Compute next sequential vehicle code (e.g. FL-105) for tenant",
+      "calledBy": "createVehicle"
+    },
+    {
+      "name": "getVehicles",
+      "file": "src/controllers/vehicleController.js",
+      "startLine": 26,
+      "endLine": 77,
+      "purpose": "Fetch vehicle fleet (Admin: all tenant; Employee: assigned vehicle only)",
+      "calledBy": "GET /api/vehicles"
+    },
+    {
+      "name": "getVehicleById",
+      "file": "src/controllers/vehicleController.js",
+      "startLine": 84,
+      "endLine": 123,
+      "purpose": "Fetch specific vehicle by ID with RBAC isolation verification",
+      "calledBy": "GET /api/vehicles/:id"
+    },
+    {
+      "name": "createVehicle",
+      "file": "src/controllers/vehicleController.js",
+      "startLine": 130,
+      "endLine": 209,
+      "purpose": "Add new vehicle asset with plate uniqueness enforcement",
+      "calledBy": "POST /api/vehicles"
+    },
+    {
+      "name": "updateVehicle",
+      "file": "src/controllers/vehicleController.js",
+      "startLine": 216,
+      "endLine": 281,
+      "purpose": "Update vehicle specifications, odometer, or status",
+      "calledBy": "PUT /api/vehicles/:id"
+    },
+    {
+      "name": "deleteVehicle",
+      "file": "src/controllers/vehicleController.js",
+      "startLine": 288,
+      "endLine": 309,
+      "purpose": "Delete vehicle asset and clear driver vehicle assignment",
+      "calledBy": "DELETE /api/vehicles/:id"
+    },
+    {
+      "name": "getJwtSecret",
+      "file": "src/utils/jwt.js",
+      "startLine": 5,
+      "endLine": 7,
+      "purpose": "Retrieve JWT secret key from environment or fallback with warning",
+      "calledBy": "generateToken, verifyToken"
+    },
+    {
+      "name": "generateToken",
+      "file": "src/utils/jwt.js",
+      "startLine": 12,
+      "endLine": 22,
+      "purpose": "Sign JWT containing user ID, role, and organization ID",
+      "calledBy": "sendTokenResponse"
+    },
+    {
+      "name": "verifyToken",
+      "file": "src/utils/jwt.js",
+      "startLine": 27,
+      "endLine": 29,
+      "purpose": "Validate JWT signature and extract payload",
+      "calledBy": "protect middleware"
+    },
+    {
+      "name": "sendTokenResponse",
+      "file": "src/utils/jwt.js",
+      "startLine": 34,
+      "endLine": 62,
+      "purpose": "Set HTTP-only secure cookie and return user profile JSON",
+      "calledBy": "login, registerAdmin"
+    },
+    {
+      "name": "clearTokenCookie",
+      "file": "src/utils/jwt.js",
+      "startLine": 67,
+      "endLine": 73,
+      "purpose": "Expire authentication cookie on logout",
+      "calledBy": "logout"
+    },
+    {
+      "name": "getEmployeeAccessContext",
+      "file": "src/utils/rbac.js",
+      "startLine": 15,
+      "endLine": 79,
+      "purpose": "Backend service/controller operation",
+      "calledBy": "Express router / controller"
+    },
+    {
+      "name": "successResponse",
+      "file": "src/utils/response.js",
+      "startLine": 5,
+      "endLine": 11,
+      "purpose": "Send standardized success JSON response { success: true, data }",
+      "calledBy": "controllers"
+    },
+    {
+      "name": "errorResponse",
+      "file": "src/utils/response.js",
+      "startLine": 13,
+      "endLine": 22,
+      "purpose": "Send standardized error JSON response { success: false, message }",
+      "calledBy": "controllers, middleware"
+    }
+  ]
+}
