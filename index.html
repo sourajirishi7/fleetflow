@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FleetFlow — Fleet Management System</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <div class="sidebar-backdrop" id="sidebar-backdrop" hidden></div>
+
+    <aside class="sidebar" id="sidebar" aria-label="Main navigation">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="28" height="28">
+            <rect x="2" y="10" width="20" height="12" rx="2" fill="currentColor"/>
+            <circle cx="8" cy="24" r="3" fill="#818cf8"/>
+            <circle cx="20" cy="24" r="3" fill="#818cf8"/>
+            <path d="M22 12h6l2 6h-8z" fill="#a5b4fc"/>
+          </svg>
+        </span>
+        <div>
+          <strong>FleetFlow</strong>
+          <span>Operations Console</span>
+        </div>
+      </div>
+
+      <nav class="side-nav" id="side-nav">
+        <button class="nav-item is-active" data-section="dashboard" aria-current="page">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4v9zm0 7h6v-5H4v5zm8 0h8V11h-8v9zm0-16v5h8V4h-8z"/></svg>
+          <span>Dashboard</span>
+        </button>
+        <button class="nav-item" data-section="vehicles">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13l1.5-4.5A2 2 0 0 1 6.4 7h11.2a2 2 0 0 1 1.9 1.5L21 13v6a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-1H6v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6zm4.5 2.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm9 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/></svg>
+          <span>Vehicles</span>
+        </button>
+        <button class="nav-item" data-section="drivers">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z"/></svg>
+          <span>Drivers</span>
+        </button>
+        <button class="nav-item" data-section="fuel">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h8a2 2 0 0 1 2 2v11a3 3 0 1 1-6 0V9h-2v11H5V5a2 2 0 0 1 2-2zm12 5h1v8a2 2 0 0 0 4 0V9.5L20 6h-1z"/></svg>
+          <span>Fuel</span>
+        </button>
+        <button class="nav-item" data-section="maintenance">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 7l-4-4-2.5 2.5 4 4L21 7zM3 17.5V21h3.5l10-10-3.5-3.5-10 10z"/></svg>
+          <span>Maintenance</span>
+        </button>
+        <button class="nav-item" data-section="routes">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 14.5 9 2.5 2.5 0 0 1 12 11.5z"/></svg>
+          <span>Routes</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-foot">
+        <p>FleetFlow v1.0</p>
+        <p>Web Programming Project</p>
+      </div>
+    </aside>
+
+    <div class="shell">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="icon-btn menu-toggle" id="menu-toggle" aria-label="Open navigation menu" aria-controls="sidebar">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+          </button>
+          <div>
+            <h1 id="page-title">Fleet Command Center</h1>
+            <p class="page-subtitle" id="page-subtitle">Monitor your fleet, drivers, routes and maintenance in real time.</p>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <div class="search-wrap">
+            <label class="sr-only" for="global-search">Search vehicles, drivers and routes</label>
+            <input type="search" id="global-search" placeholder="Search vehicles, drivers, routes..." autocomplete="off">
+            <div class="search-results" id="search-results" hidden role="listbox" aria-label="Search results"></div>
+          </div>
+
+          <div class="dropdown-anchor">
+            <button class="icon-btn notify-btn" id="notify-btn" aria-label="Notifications" aria-expanded="false" aria-controls="notify-panel">
+              <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 22a2.2 2.2 0 0 0 2.2-2.2H9.8A2.2 2.2 0 0 0 12 22zm7-6V11a7 7 0 1 0-14 0v5L3 18v1h18v-1l-2-2z"/></svg>
+              <span class="badge-dot" id="notify-count">4</span>
+            </button>
+            <div class="panel" id="notify-panel" hidden role="menu" aria-label="Notifications">
+              <div class="panel-head">Notifications</div>
+              <div id="notify-list"></div>
+            </div>
+          </div>
+
+          <div class="dropdown-anchor">
+            <button class="user-chip" id="user-btn" aria-haspopup="true" aria-expanded="false" aria-controls="user-menu">
+              <span class="avatar" aria-hidden="true">AU</span>
+              <span class="user-meta">
+                <strong>Admin User</strong>
+                <small>Fleet Manager</small>
+              </span>
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M7 10l5 5 5-5z"/></svg>
+            </button>
+            <div class="panel user-menu" id="user-menu" hidden role="menu">
+              <button type="button" role="menuitem" data-user-action="profile">Profile</button>
+              <button type="button" role="menuitem" data-user-action="settings">Settings</button>
+              <button type="button" role="menuitem" data-user-action="logout">Logout</button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="content">
+        <section class="page is-visible" id="page-dashboard" aria-labelledby="page-title">
+          <div class="kpi-grid" id="kpi-grid"></div>
+
+          <div class="dashboard-grid">
+            <article class="card">
+              <div class="card-head">
+                <h2>Fuel Consumption — Last 7 Days</h2>
+                <span class="muted">Litres</span>
+              </div>
+              <div class="bar-chart" id="fuel-chart" role="img" aria-label="Fuel consumption bar chart for the last 7 days"></div>
+            </article>
+
+            <article class="card">
+              <div class="card-head">
+                <h2>Fleet Status</h2>
+              </div>
+              <div class="donut-wrap">
+                <div class="donut" id="status-donut" role="img" aria-label="Fleet status donut chart"></div>
+                <ul class="legend" id="status-legend"></ul>
+              </div>
+            </article>
+          </div>
+
+          <article class="card">
+            <div class="card-head">
+              <h2>Recent Activity</h2>
+              <span class="muted">Live operations feed</span>
+            </div>
+            <div class="activity-feed" id="activity-feed"></div>
+          </article>
+        </section>
+
+        <section class="page" id="page-vehicles" hidden>
+          <div class="action-bar">
+            <label class="sr-only" for="vehicle-search">Search vehicles</label>
+            <input type="search" id="vehicle-search" placeholder="Search by ID, model or plate...">
+            <label class="sr-only" for="vehicle-status-filter">Filter by status</label>
+            <select id="vehicle-status-filter">
+              <option value="all">All statuses</option>
+              <option value="Active">Active</option>
+              <option value="Idle">Idle</option>
+              <option value="In Shop">In Shop</option>
+              <option value="Offline">Offline</option>
+            </select>
+            <button class="btn btn-primary" id="add-vehicle-btn" type="button">+ Add Vehicle</button>
+          </div>
+          <div class="table-wrap card">
+            <table>
+              <thead>
+                <tr>
+                  <th>Vehicle ID</th>
+                  <th>Make / Model</th>
+                  <th>License Plate</th>
+                  <th>Year</th>
+                  <th>Odometer</th>
+                  <th>Status</th>
+                  <th>Assigned Driver</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="vehicle-table-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="page" id="page-drivers" hidden>
+          <div class="action-bar">
+            <label class="sr-only" for="driver-search">Search drivers</label>
+            <input type="search" id="driver-search" placeholder="Search by name, license or phone...">
+            <div class="chip-filters" role="group" aria-label="Driver status filters">
+              <button type="button" class="chip is-active" data-driver-filter="all">All</button>
+              <button type="button" class="chip" data-driver-filter="Active">Active</button>
+              <button type="button" class="chip" data-driver-filter="Off-Duty">Off-Duty</button>
+            </div>
+            <button class="btn btn-primary" id="add-driver-btn" type="button">+ Add Driver</button>
+          </div>
+          <div class="table-wrap card">
+            <table>
+              <thead>
+                <tr>
+                  <th>Driver Name</th>
+                  <th>License Number</th>
+                  <th>Phone</th>
+                  <th>Shift Status</th>
+                  <th>Safety Score</th>
+                  <th>Assigned Vehicle</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="driver-table-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="page" id="page-fuel" hidden>
+          <div class="action-bar">
+            <label class="sr-only" for="fuel-search">Search fuel entries</label>
+            <input type="search" id="fuel-search" placeholder="Search vehicle, driver or date...">
+            <label class="sr-only" for="fuel-vehicle-filter">Filter by vehicle</label>
+            <select id="fuel-vehicle-filter"></select>
+            <label class="sr-only" for="fuel-date-filter">Filter by date</label>
+            <input type="date" id="fuel-date-filter">
+            <button class="btn btn-ghost" id="fuel-date-clear" type="button">Clear date</button>
+            <button class="btn btn-primary" id="add-fuel-btn" type="button">+ Add Fuel Entry</button>
+          </div>
+          <div class="table-wrap card">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Vehicle ID</th>
+                  <th>Driver</th>
+                  <th>Volume</th>
+                  <th>Cost</th>
+                  <th>Odometer</th>
+                  <th>Efficiency</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="fuel-table-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="page" id="page-maintenance" hidden>
+          <div class="action-bar">
+            <p class="muted">Tickets are grouped by due date. Overdue items need immediate attention.</p>
+            <button class="btn btn-primary" id="add-maintenance-btn" type="button">+ Schedule Service</button>
+          </div>
+          <div class="kanban" id="maintenance-board"></div>
+        </section>
+
+        <section class="page" id="page-routes" hidden>
+          <article class="card map-card">
+            <div class="map-banner">LIVE ROUTE TRACKING</div>
+            <div class="map-mock" aria-hidden="true">
+              <div class="road h1"></div>
+              <div class="road h2"></div>
+              <div class="road v1"></div>
+              <div class="road v2"></div>
+              <div class="route-line"></div>
+              <span class="pin pin-a">A</span>
+              <span class="pin pin-b">B</span>
+              <span class="pin pin-c">C</span>
+              <span class="truck-marker" title="FL-101">FL-101</span>
+            </div>
+            <p class="map-caption">Hyderabad → Vijayawada corridor · Vehicle FL-101 · Driver Sarah Johnson</p>
+          </article>
+          <div class="table-wrap card">
+            <table>
+              <thead>
+                <tr>
+                  <th>Route ID</th>
+                  <th>Vehicle</th>
+                  <th>Driver</th>
+                  <th>Start Destination</th>
+                  <th>End Destination</th>
+                  <th>Distance</th>
+                  <th>Duration</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="route-table-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-overlay" hidden>
+    <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-header">
+        <h2 id="modal-title">Dialog</h2>
+        <button type="button" class="icon-btn" id="modal-close" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
+
+  <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
