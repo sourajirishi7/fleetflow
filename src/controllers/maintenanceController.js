@@ -2,12 +2,13 @@ const MaintenanceRecord = require("../models/MaintenanceRecord");
 const Vehicle = require("../models/Vehicle");
 const Activity = require("../models/Activity");
 const { successResponse, errorResponse } = require("../utils/response");
+const { getEmployeeAccessContext } = require("../utils/rbac");
 
 /**
- * Generate next Maintenance ID (e.g., M11)
+ * Generate next Maintenance ID within organization (e.g., M11)
  */
-const getNextMaintenanceId = async () => {
-  const records = await MaintenanceRecord.find({}, "id");
+const getNextMaintenanceId = async (organizationId) => {
+  const records = await MaintenanceRecord.find({ organizationId }, "id");
   const nums = records.map((r) => {
     const raw = String(r.id).replace(/\D/g, "");
     return Number(raw) || 0;
@@ -17,17 +18,34 @@ const getNextMaintenanceId = async () => {
 };
 
 /**
- * @desc    Get all maintenance records
+ * @desc    Get maintenance records (Admin: all org, Employee: assigned vehicle only)
  * @route   GET /api/maintenance
  * @access  Private
  */
 const getMaintenanceRecords = async (req, res, next) => {
   try {
+    const orgId = req.user.organizationId;
     const { vehicleId, status } = req.query;
-    let query = {};
+    let query = { organizationId: orgId };
+
+    // Role-based access restriction
+    if (req.user.role === "EMPLOYEE") {
+      const { assignedVehicleIds } = await getEmployeeAccessContext(req.user);
+      if (!assignedVehicleIds || assignedVehicleIds.length === 0) {
+        return successResponse(res, [], "No maintenance records for assigned vehicle");
+      }
+      query.vehicleId = { $in: assignedVehicleIds };
+    }
 
     if (vehicleId && vehicleId !== "all") {
-      query.vehicleId = vehicleId;
+      const targetVId = vehicleId.trim().toUpperCase();
+      if (req.user.role === "EMPLOYEE") {
+        const { assignedVehicleIds } = await getEmployeeAccessContext(req.user);
+        if (!assignedVehicleIds.includes(targetVId)) {
+          return errorResponse(res, "Access denied to maintenance records for this vehicle", 403);
+        }
+      }
+      query.vehicleId = targetVId;
     }
 
     if (status && status !== "all") {
@@ -40,7 +58,7 @@ const getMaintenanceRecords = async (req, res, next) => {
     const today = new Date().toISOString().split("T")[0];
     const updatedRecords = records.map((r) => {
       const obj = r.toJSON();
-      if (obj.status !== "Completed" && obj.date < today) {
+      if (obj.status !== "Completed" && (obj.date || obj.serviceDate) < today) {
         obj.status = "Overdue";
       }
       return obj;
@@ -53,59 +71,80 @@ const getMaintenanceRecords = async (req, res, next) => {
 };
 
 /**
- * @desc    Schedule new maintenance service
+ * @desc    Schedule new maintenance service (Admin: any, Employee: assigned vehicle only)
  * @route   POST /api/maintenance
- * @access  Private (Admin only)
+ * @access  Private
  */
 const createMaintenanceRecord = async (req, res, next) => {
   try {
-    let { id, vehicleId, type, date, cost, priority, notes } = req.body;
+    const orgId = req.user.organizationId;
+    let { id, vehicleId, type, maintenanceType, date, serviceDate, cost, priority, notes, description } = req.body;
 
-    if (!vehicleId || !type || !date) {
+    const effectiveType = type || maintenanceType;
+    const effectiveDate = date || serviceDate;
+    const effectiveDesc = notes || description;
+
+    if (!vehicleId || !effectiveType || !effectiveDate) {
       return errorResponse(res, "Vehicle, service type, and scheduled date are required", 400);
     }
 
     const vId = vehicleId.trim().toUpperCase();
-    const vehicle = await Vehicle.findOne({ id: vId });
+
+    // Verify employee authorization
+    if (req.user.role === "EMPLOYEE") {
+      const { assignedVehicleIds } = await getEmployeeAccessContext(req.user);
+      if (!assignedVehicleIds || !assignedVehicleIds.includes(vId)) {
+        return errorResponse(res, "You are only authorized to schedule service for your assigned vehicle", 403);
+      }
+    }
+
+    const vehicle = await Vehicle.findOne({ id: vId, organizationId: orgId });
     if (!vehicle) {
-      return errorResponse(res, `Vehicle '${vId}' not found`, 404);
+      return errorResponse(res, `Vehicle '${vId}' not found in your organization`, 404);
     }
 
     if (!id) {
-      id = await getNextMaintenanceId();
+      id = await getNextMaintenanceId(orgId);
     } else {
       id = id.trim().toUpperCase();
     }
 
-    const today = new Date().toISOString().split("T")[0];
-    const status = date < today ? "Overdue" : "Upcoming";
+    // Check duplicate ID in organization
+    const existing = await MaintenanceRecord.findOne({ id, organizationId: orgId });
+    if (existing) {
+      return errorResponse(res, `Maintenance ID '${id}' already exists in your organization`, 409);
+    }
 
-    const newTicket = await MaintenanceRecord.create({
+    const today = new Date().toISOString().split("T")[0];
+    const initialStatus = effectiveDate < today ? "Overdue" : "Upcoming";
+
+    const newRecord = await MaintenanceRecord.create({
+      organizationId: orgId,
       id,
       vehicleId: vId,
-      type,
-      date,
-      cost: Number(cost) || 0,
+      vehicleRef: vehicle._id,
+      reportedBy: req.user._id,
+      maintenanceType: effectiveType,
+      type: effectiveType,
+      serviceDate: effectiveDate,
+      date: effectiveDate,
+      cost: cost !== undefined ? Number(cost) : 0,
       priority: priority || "Medium",
-      status,
-      notes: notes ? notes.trim() : ""
+      status: initialStatus,
+      description: effectiveDesc ? effectiveDesc.trim() : "",
+      notes: effectiveDesc ? effectiveDesc.trim() : ""
     });
-
-    // Update vehicle's next service or status if high priority
-    if (priority === "High" && vehicle.status === "Active") {
-      vehicle.status = "In Shop";
-      await vehicle.save();
-    }
 
     // Log Activity
     await Activity.create({
+      organizationId: orgId,
       icon: "🔧",
-      text: `Maintenance scheduled for ${vId} (${type})`,
+      text: `Maintenance scheduled for ${vId}: ${effectiveType} (${effectiveDate})`,
       time: "Just now",
-      status: "Warning"
+      status: initialStatus === "Overdue" ? "Alert" : "Info"
     });
 
-    return successResponse(res, newTicket, "Maintenance scheduled successfully", 201);
+    return successResponse(res, newRecord, "Maintenance record created successfully", 201);
   } catch (err) {
     next(err);
   }
@@ -114,39 +153,50 @@ const createMaintenanceRecord = async (req, res, next) => {
 /**
  * @desc    Update maintenance record status
  * @route   PATCH /api/maintenance/:id/status
- * @access  Private (Admin only)
+ * @access  Private
  */
 const updateMaintenanceStatus = async (req, res, next) => {
   try {
+    const orgId = req.user.organizationId;
     const recordId = req.params.id.toUpperCase();
     const { status } = req.body;
 
-    if (!["Overdue", "Upcoming", "Completed"].includes(status)) {
-      return errorResponse(res, "Status must be Overdue, Upcoming, or Completed", 400);
+    const validStatuses = ["Upcoming", "Overdue", "Completed"];
+    if (!status || !validStatuses.includes(status)) {
+      return errorResponse(
+        res,
+        `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
+        400
+      );
     }
 
-    const record = await MaintenanceRecord.findOne({ id: recordId });
+    const record = await MaintenanceRecord.findOne({ id: recordId, organizationId: orgId });
     if (!record) {
       return errorResponse(res, "Maintenance record not found", 404);
+    }
+
+    // Role check for Employee
+    if (req.user.role === "EMPLOYEE") {
+      const { assignedVehicleIds } = await getEmployeeAccessContext(req.user);
+      if (!assignedVehicleIds || !assignedVehicleIds.includes(record.vehicleId)) {
+        return errorResponse(res, "Access denied to update this maintenance record", 403);
+      }
     }
 
     record.status = status;
     await record.save();
 
-    // If marked Completed, update vehicle's last service date and status if was In Shop
-    if (status === "Completed") {
-      const today = new Date().toISOString().split("T")[0];
-      const vehicle = await Vehicle.findOne({ id: record.vehicleId });
-      if (vehicle) {
-        vehicle.lastService = today;
-        if (vehicle.status === "In Shop") {
-          vehicle.status = "Active";
-        }
-        await vehicle.save();
-      }
-    }
+    // Log Activity
+    const icon = status === "Completed" ? "✅" : status === "Overdue" ? "⚠️" : "🔧";
+    await Activity.create({
+      organizationId: orgId,
+      icon,
+      text: `Maintenance ${record.id} for ${record.vehicleId} marked as ${status}`,
+      time: "Just now",
+      status: status === "Completed" ? "On-Time" : status === "Overdue" ? "Warning" : "Info"
+    });
 
-    return successResponse(res, record, `Maintenance ticket marked as ${status}`);
+    return successResponse(res, record, `Maintenance record marked as ${status}`);
   } catch (err) {
     next(err);
   }
@@ -159,14 +209,17 @@ const updateMaintenanceStatus = async (req, res, next) => {
  */
 const deleteMaintenanceRecord = async (req, res, next) => {
   try {
+    const orgId = req.user.organizationId;
     const recordId = req.params.id.toUpperCase();
-    const record = await MaintenanceRecord.findOneAndDelete({ id: recordId });
+    const record = await MaintenanceRecord.findOne({ id: recordId, organizationId: orgId });
 
     if (!record) {
       return errorResponse(res, "Maintenance record not found", 404);
     }
 
-    return successResponse(res, null, `Maintenance record ${recordId} deleted successfully`);
+    await MaintenanceRecord.findOneAndDelete({ id: recordId, organizationId: orgId });
+
+    return successResponse(res, null, "Maintenance record deleted successfully");
   } catch (err) {
     next(err);
   }

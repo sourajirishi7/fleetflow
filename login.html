@@ -21,7 +21,7 @@
       max-width: 1040px;
       min-height: 600px;
       background: var(--card);
-      border-radius: var(--radius);
+      border-radius: 6px;
       box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
       border: 1px solid var(--line);
       display: grid;
@@ -63,7 +63,7 @@
       background: rgba(255, 255, 255, 0.1);
       border: 1px solid rgba(255, 255, 255, 0.15);
       padding: 0.6rem;
-      border-radius: 12px;
+      border-radius: 4px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -94,7 +94,7 @@
       height: 200px;
       background: rgba(255, 255, 255, 0.04);
       border: 1px dashed rgba(255, 255, 255, 0.2);
-      border-radius: 16px;
+      border-radius: 4px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -118,21 +118,6 @@
       color: #94a3b8;
       font-size: 0.9rem;
       line-height: 1.5;
-    }
-
-    .hero-tags {
-      display: flex;
-      gap: 0.6rem;
-      flex-wrap: wrap;
-    }
-
-    .hero-tag {
-      font-size: 0.75rem;
-      padding: 0.35rem 0.75rem;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      color: #cbd5e1;
     }
 
     /* Right Form Card */
@@ -163,7 +148,7 @@
 
     .login-alert {
       padding: 0.85rem 1rem;
-      border-radius: 10px;
+      border-radius: 4px;
       font-size: 0.9rem;
       margin-bottom: 1.5rem;
       display: flex;
@@ -205,7 +190,7 @@
       width: 100%;
       padding: 0.75rem 1rem;
       border: 1px solid var(--line);
-      border-radius: 10px;
+      border-radius: 3px;
       background: #ffffff;
       color: var(--text);
       transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -228,7 +213,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 6px;
+      border-radius: 2px;
     }
 
     .password-toggle-btn:hover {
@@ -241,7 +226,7 @@
       background: var(--primary);
       color: #ffffff;
       border: none;
-      border-radius: 10px;
+      border-radius: 4px;
       font-size: 1rem;
       font-weight: 600;
       display: flex;
@@ -302,7 +287,7 @@
       background: var(--bg);
       border: 1px solid var(--line);
       padding: 0.3rem 0.6rem;
-      border-radius: 6px;
+      border-radius: 3px;
       font-family: monospace;
       font-size: 0.75rem;
       cursor: pointer;
@@ -371,25 +356,25 @@
             <p>Real-time vehicle tracking, driver safety scoring, preventive maintenance, and fuel cost governance.</p>
           </div>
         </div>
-
-        <div class="hero-tags">
-          <span class="hero-tag">Live Operations</span>
-          <span class="hero-tag">MongoDB Atlas</span>
-          <span class="hero-tag">Role-Based Access</span>
-        </div>
       </section>
 
-      <!-- RIGHT SIDE: Login Form -->
+      <!-- RIGHT SIDE: Login & Registration Form -->
       <section class="login-form-pane" aria-labelledby="login-heading">
         <div class="login-header">
           <h2 id="login-heading">Welcome Back</h2>
-          <p>Sign in to your Fleet Management account.</p>
+          <p id="login-subheading">Sign in to your Fleet Management account.</p>
+        </div>
+
+        <div class="login-tabs" style="display: flex; gap: 8px; margin: 1.25rem 0; border-bottom: 1px solid var(--line); padding-bottom: 6px;">
+          <button type="button" id="tab-signin" class="tab-btn is-active" style="padding: 6px 14px; font-weight: 600; border: none; background: none; cursor: pointer; color: var(--primary); border-bottom: 2px solid var(--primary); font-size: 0.95rem; border-radius: 3px 3px 0 0;">Sign In</button>
+          <button type="button" id="tab-register" class="tab-btn" style="padding: 6px 14px; font-weight: 600; border: none; background: none; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; font-size: 0.95rem; border-radius: 3px 3px 0 0;">Register New Organization</button>
         </div>
 
         <div class="login-alert error" id="login-alert" hidden role="alert">
           <span id="alert-message">Invalid credentials</span>
         </div>
 
+        <!-- Sign In Form -->
         <form id="login-form" novalidate>
           <div class="form-group">
             <label for="username">Username or Email</label>
@@ -432,7 +417,50 @@
           </button>
         </form>
 
-        <div class="demo-hint">
+        <!-- Register Admin & Organization Form -->
+        <form id="register-form" novalidate hidden>
+          <div class="form-group">
+            <label for="reg-org">Organization Name</label>
+            <div class="input-wrapper">
+              <input type="text" id="reg-org" name="organizationName" placeholder="e.g. Apex Logistics Ltd" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="reg-name">Administrator Full Name</label>
+            <div class="input-wrapper">
+              <input type="text" id="reg-name" name="name" placeholder="e.g. Ramesh Kumar" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="reg-username">Admin Username</label>
+            <div class="input-wrapper">
+              <input type="text" id="reg-username" name="username" placeholder="e.g. ramesh_admin" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="reg-email">Work Email</label>
+            <div class="input-wrapper">
+              <input type="email" id="reg-email" name="email" placeholder="ramesh@apexlogistics.local" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="reg-password">Password (min 6 characters)</label>
+            <div class="input-wrapper">
+              <input type="password" id="reg-password" name="password" placeholder="Create admin password" required>
+            </div>
+          </div>
+
+          <button type="submit" class="login-submit-btn" id="reg-submit-btn">
+            <span id="reg-btn-text">Create Organization & Admin</span>
+            <div class="spinner" id="reg-btn-spinner" hidden></div>
+          </button>
+        </form>
+
+        <div class="demo-hint" id="demo-hint-box">
           <strong>Default Demo Credentials:</strong>
           <div class="hint-badges">
             <span class="hint-chip" title="Click to fill Admin" onclick="fillCreds('admin', 'Admin@12345')">Admin: admin / Admin@12345</span>
@@ -452,27 +480,60 @@
     }
 
     document.addEventListener("DOMContentLoaded", function () {
-      const form = document.getElementById("login-form");
+      const loginForm = document.getElementById("login-form");
+      const registerForm = document.getElementById("register-form");
       const alertBox = document.getElementById("login-alert");
       const alertMsg = document.getElementById("alert-message");
       const submitBtn = document.getElementById("submit-btn");
       const btnText = document.getElementById("btn-text");
       const btnSpinner = document.getElementById("btn-spinner");
+      const regSubmitBtn = document.getElementById("reg-submit-btn");
+      const regBtnText = document.getElementById("reg-btn-text");
+      const regBtnSpinner = document.getElementById("reg-btn-spinner");
       const passwordInput = document.getElementById("password");
       const togglePasswordBtn = document.getElementById("toggle-password");
+      const tabSignIn = document.getElementById("tab-signin");
+      const tabRegister = document.getElementById("tab-register");
+      const headingEl = document.getElementById("login-heading");
+      const subheadingEl = document.getElementById("login-subheading");
+      const demoHintBox = document.getElementById("demo-hint-box");
+
+      // Tab Switching
+      tabSignIn.addEventListener("click", function () {
+        loginForm.hidden = false;
+        registerForm.hidden = true;
+        tabSignIn.style.color = "var(--primary)";
+        tabSignIn.style.borderBottom = "2px solid var(--primary)";
+        tabRegister.style.color = "var(--muted)";
+        tabRegister.style.borderBottom = "2px solid transparent";
+        headingEl.textContent = "Welcome Back";
+        subheadingEl.textContent = "Sign in to your Fleet Management account.";
+        if (demoHintBox) demoHintBox.hidden = false;
+        alertBox.hidden = true;
+      });
+
+      tabRegister.addEventListener("click", function () {
+        loginForm.hidden = true;
+        registerForm.hidden = false;
+        tabRegister.style.color = "var(--primary)";
+        tabRegister.style.borderBottom = "2px solid var(--primary)";
+        tabSignIn.style.color = "var(--muted)";
+        tabSignIn.style.borderBottom = "2px solid transparent";
+        headingEl.textContent = "New Organization Setup";
+        subheadingEl.textContent = "Initialize your fleet organization and master administrator.";
+        if (demoHintBox) demoHintBox.hidden = true;
+        alertBox.hidden = true;
+      });
 
       // Check if user is already authenticated
       fetch("/api/auth/me", { credentials: "include" })
         .then(function (res) { return res.json(); })
         .then(function (data) {
           if (data && data.success && data.data) {
-            // Already logged in, redirect to operations console
             window.location.replace("/index.html");
           }
         })
-        .catch(function () {
-          // Not logged in or error, stay on login page
-        });
+        .catch(function () {});
 
       // Toggle show/hide password
       togglePasswordBtn.addEventListener("click", function () {
@@ -485,9 +546,8 @@
       });
 
       // Handle Login Submission
-      form.addEventListener("submit", async function (event) {
+      loginForm.addEventListener("submit", async function (event) {
         event.preventDefault();
-
         alertBox.hidden = true;
         const username = document.getElementById("username").value.trim();
         const password = passwordInput.value;
@@ -497,7 +557,6 @@
           return;
         }
 
-        // Set Loading State
         submitBtn.disabled = true;
         btnText.textContent = "Signing in...";
         btnSpinner.hidden = false;
@@ -505,9 +564,7 @@
         try {
           const res = await fetch("/api/auth/login", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             credentials: "include",
             body: JSON.stringify({ username, password })
           });
@@ -515,14 +572,13 @@
           const data = await res.json();
 
           if (res.ok && data.success) {
-            // Login successful
             alertBox.className = "login-alert success";
             alertMsg.textContent = "Sign in successful! Redirecting to dashboard...";
             alertBox.hidden = false;
 
             setTimeout(function () {
               window.location.replace("/index.html");
-            }, 500);
+            }, 400);
           } else {
             showAlert(data.message || "Invalid username or password");
           }
@@ -532,6 +588,67 @@
           submitBtn.disabled = false;
           btnText.textContent = "Sign In";
           btnSpinner.hidden = true;
+        }
+      });
+
+      // Handle Register Organization Submission
+      registerForm.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        alertBox.hidden = true;
+
+        const organizationName = document.getElementById("reg-org").value.trim();
+        const name = document.getElementById("reg-name").value.trim();
+        const username = document.getElementById("reg-username").value.trim();
+        const email = document.getElementById("reg-email").value.trim();
+        const password = document.getElementById("reg-password").value;
+
+        if (!organizationName || !name || !username || !email || !password) {
+          showAlert("Please fill in all required registration fields.");
+          return;
+        }
+
+        if (password.length < 6) {
+          showAlert("Password must be at least 6 characters long.");
+          return;
+        }
+
+        regSubmitBtn.disabled = true;
+        regBtnText.textContent = "Creating Organization...";
+        regBtnSpinner.hidden = false;
+
+        try {
+          const res = await fetch("/api/auth/register-admin", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              organizationName,
+              name,
+              username,
+              email,
+              password
+            })
+          });
+
+          const data = await res.json();
+
+          if (res.ok && data.success) {
+            alertBox.className = "login-alert success";
+            alertMsg.textContent = "Organization created! Initializing empty dashboard...";
+            alertBox.hidden = false;
+
+            setTimeout(function () {
+              window.location.replace("/index.html");
+            }, 500);
+          } else {
+            showAlert(data.message || "Failed to create organization.");
+          }
+        } catch (err) {
+          showAlert("Network error during registration. Please try again.");
+        } finally {
+          regSubmitBtn.disabled = false;
+          regBtnText.textContent = "Create Organization & Admin";
+          regBtnSpinner.hidden = true;
         }
       });
 

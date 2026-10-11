@@ -1,13 +1,15 @@
 const Trip = require("../models/Trip");
 const Vehicle = require("../models/Vehicle");
+const Driver = require("../models/Driver");
 const Activity = require("../models/Activity");
 const { successResponse, errorResponse } = require("../utils/response");
+const { getEmployeeAccessContext } = require("../utils/rbac");
 
 /**
- * Generate next Trip ID (e.g., R-211)
+ * Generate next Trip ID within organization (e.g., R-211)
  */
-const getNextTripId = async () => {
-  const trips = await Trip.find({}, "id");
+const getNextTripId = async (organizationId) => {
+  const trips = await Trip.find({ organizationId }, "id");
   const nums = trips.map((t) => {
     const raw = String(t.id).replace(/\D/g, "");
     return Number(raw) || 0;
@@ -17,18 +19,28 @@ const getNextTripId = async () => {
 };
 
 /**
- * @desc    Get trips (role-aware: Admin sees all, Employee sees assigned)
+ * @desc    Get trips (role-aware: Admin sees all org trips, Employee sees assigned only)
  * @route   GET /api/trips
  * @access  Private
  */
 const getTrips = async (req, res, next) => {
   try {
+    const orgId = req.user.organizationId;
     const { status, vehicleId, search } = req.query;
-    let query = {};
+    let query = { organizationId: orgId };
 
-    // Role-based scoping: If employee has driverId, filter by driverId
-    if (req.user.role === "EMPLOYEE" && req.user.driverId) {
-      query.driverId = req.user.driverId;
+    // Role-based scoping for Employee
+    if (req.user.role === "EMPLOYEE") {
+      const { driverId, assignedVehicleIds } = await getEmployeeAccessContext(req.user);
+      if (!driverId && (!assignedVehicleIds || assignedVehicleIds.length === 0)) {
+        return successResponse(res, [], "No trips assigned to this employee");
+      }
+      const employeeConditions = [];
+      if (driverId) employeeConditions.push({ driverId });
+      if (assignedVehicleIds && assignedVehicleIds.length > 0) {
+        employeeConditions.push({ vehicleId: { $in: assignedVehicleIds } });
+      }
+      query.$or = employeeConditions;
     }
 
     if (status && status !== "all") {
@@ -36,18 +48,43 @@ const getTrips = async (req, res, next) => {
     }
 
     if (vehicleId && vehicleId !== "all") {
+      // If employee, verify they have access to requested vehicleId
+      if (req.user.role === "EMPLOYEE") {
+        const { assignedVehicleIds } = await getEmployeeAccessContext(req.user);
+        if (!assignedVehicleIds.includes(vehicleId.toUpperCase())) {
+          return errorResponse(res, "Access denied to trips for this vehicle", 403);
+        }
+      }
       query.vehicleId = vehicleId;
     }
 
     if (search) {
       const regex = new RegExp(search.trim(), "i");
-      query.$or = [
+      const searchConditions = [
         { id: regex },
         { start: regex },
+        { startDestination: regex },
         { end: regex },
+        { endDestination: regex },
         { vehicleId: regex },
         { driverId: regex }
       ];
+
+      if (query.$or) {
+        query.$and = [
+          { organizationId: orgId },
+          { $or: query.$or },
+          { $or: searchConditions }
+        ];
+        delete query.$or;
+        delete query.organizationId;
+      } else {
+        query.$and = [
+          { organizationId: orgId },
+          { $or: searchConditions }
+        ];
+        delete query.organizationId;
+      }
     }
 
     const trips = await Trip.find(query).sort({ id: 1 });
@@ -58,22 +95,28 @@ const getTrips = async (req, res, next) => {
 };
 
 /**
- * @desc    Get single trip by ID
+ * @desc    Get single trip by ID within organization
  * @route   GET /api/trips/:id
  * @access  Private
  */
 const getTripById = async (req, res, next) => {
   try {
+    const orgId = req.user.organizationId;
     const tripId = req.params.id.toUpperCase();
-    const trip = await Trip.findOne({ id: tripId });
+    const trip = await Trip.findOne({ id: tripId, organizationId: orgId });
 
     if (!trip) {
       return errorResponse(res, "Trip not found", 404);
     }
 
-    // If employee, check permission
-    if (req.user.role === "EMPLOYEE" && req.user.driverId && trip.driverId !== req.user.driverId) {
-      return errorResponse(res, "Access denied to this trip record", 403);
+    // Role-based verification
+    if (req.user.role === "EMPLOYEE") {
+      const { driverId, assignedVehicleIds } = await getEmployeeAccessContext(req.user);
+      const isAssigned = (driverId && trip.driverId === driverId) ||
+                         (assignedVehicleIds && assignedVehicleIds.includes(trip.vehicleId));
+      if (!isAssigned) {
+        return errorResponse(res, "Access denied to this trip record", 403);
+      }
     }
 
     return successResponse(res, trip, "Trip retrieved successfully");
@@ -83,54 +126,75 @@ const getTripById = async (req, res, next) => {
 };
 
 /**
- * @desc    Create new trip
+ * @desc    Create new trip in organization
  * @route   POST /api/trips
  * @access  Private (Admin only)
  */
 const createTrip = async (req, res, next) => {
   try {
-    let { id, vehicleId, driverId, start, end, distance, duration, status } = req.body;
+    const orgId = req.user.organizationId;
+    let { id, routeCode, vehicleId, driverId, start, startDestination, end, endDestination, distance, distanceKm, duration, status } = req.body;
 
-    if (!vehicleId || !start || !end || distance === undefined || !duration) {
+    const effectiveStart = (start || startDestination || "").trim();
+    const effectiveEnd = (end || endDestination || "").trim();
+    const effectiveDistance = distance !== undefined ? distance : distanceKm;
+
+    if (!vehicleId || !effectiveStart || !effectiveEnd || effectiveDistance === undefined || !duration) {
       return errorResponse(res, "Vehicle ID, start, end, distance, and duration are required", 400);
     }
 
-    if (!id) {
-      id = await getNextTripId();
+    if (!id && !routeCode) {
+      id = await getNextTripId(orgId);
     } else {
-      id = id.trim().toUpperCase();
+      id = (id || routeCode).trim().toUpperCase();
     }
 
-    // Check duplicate ID
-    const existing = await Trip.findOne({ id });
+    // Check duplicate ID in organization
+    const existing = await Trip.findOne({
+      $or: [{ id }, { routeCode: id }],
+      organizationId: orgId
+    });
     if (existing) {
-      return errorResponse(res, `Trip ID '${id}' already exists`, 409);
+      return errorResponse(res, `Trip ID '${id}' already exists in your organization`, 409);
     }
 
     const vId = vehicleId.trim().toUpperCase();
-    const vehicle = await Vehicle.findOne({ id: vId });
+    const vehicle = await Vehicle.findOne({ id: vId, organizationId: orgId });
     if (!vehicle) {
-      return errorResponse(res, `Vehicle '${vId}' not found`, 404);
+      return errorResponse(res, `Vehicle '${vId}' not found in your organization`, 404);
     }
 
     // Default driverId to vehicle's currently assigned driver if not specified
     const assignedDriverId = driverId ? driverId.trim().toUpperCase() : vehicle.driverId;
+    let driverRef = null;
+    if (assignedDriverId) {
+      const driverDoc = await Driver.findOne({ id: assignedDriverId, organizationId: orgId });
+      if (driverDoc) driverRef = driverDoc._id;
+    }
 
     const newTrip = await Trip.create({
+      organizationId: orgId,
       id,
+      routeCode: id,
       vehicleId: vId,
+      vehicleRef: vehicle._id,
       driverId: assignedDriverId || "",
-      start: start.trim(),
-      end: end.trim(),
-      distance: Number(distance),
+      driverRef,
+      startDestination: effectiveStart,
+      start: effectiveStart,
+      endDestination: effectiveEnd,
+      end: effectiveEnd,
+      distanceKm: Number(effectiveDistance),
+      distance: Number(effectiveDistance),
       duration: duration.trim(),
       status: status || "On Time"
     });
 
     // Log activity
     await Activity.create({
+      organizationId: orgId,
       icon: "🚚",
-      text: `Vehicle ${vId} scheduled for Route ${id} (${start} → ${end})`,
+      text: `Vehicle ${vId} scheduled for Route ${id} (${effectiveStart} → ${effectiveEnd})`,
       time: "Just now",
       status: "Active"
     });
@@ -148,22 +212,32 @@ const createTrip = async (req, res, next) => {
  */
 const updateTripStatus = async (req, res, next) => {
   try {
+    const orgId = req.user.organizationId;
     const tripId = req.params.id.toUpperCase();
     const { status } = req.body;
 
     const validStatuses = ["On Time", "Delayed", "Completed", "Cancelled", "Idle"];
     if (!status || !validStatuses.includes(status)) {
-      return errorResponse(res, `Status must be one of: ${validStatuses.join(", ")}`, 400);
+      return errorResponse(
+        res,
+        `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
+        400
+      );
     }
 
-    const trip = await Trip.findOne({ id: tripId });
+    const trip = await Trip.findOne({ id: tripId, organizationId: orgId });
     if (!trip) {
       return errorResponse(res, "Trip not found", 404);
     }
 
     // Check employee authorization
-    if (req.user.role === "EMPLOYEE" && req.user.driverId && trip.driverId !== req.user.driverId) {
-      return errorResponse(res, "You are not authorized to update this trip", 403);
+    if (req.user.role === "EMPLOYEE") {
+      const { driverId, assignedVehicleIds } = await getEmployeeAccessContext(req.user);
+      const isAssigned = (driverId && trip.driverId === driverId) ||
+                         (assignedVehicleIds && assignedVehicleIds.includes(trip.vehicleId));
+      if (!isAssigned) {
+        return errorResponse(res, "You are not authorized to update this trip", 403);
+      }
     }
 
     trip.status = status;
@@ -172,6 +246,7 @@ const updateTripStatus = async (req, res, next) => {
     // Log Activity
     const icon = status === "Completed" ? "✅" : status === "Delayed" ? "⚠️" : "🚚";
     await Activity.create({
+      organizationId: orgId,
       icon,
       text: `Trip ${trip.id} status changed to ${status}`,
       time: "Just now",
@@ -191,8 +266,9 @@ const updateTripStatus = async (req, res, next) => {
  */
 const updateTrip = async (req, res, next) => {
   try {
+    const orgId = req.user.organizationId;
     const tripId = req.params.id.toUpperCase();
-    const trip = await Trip.findOne({ id: tripId });
+    const trip = await Trip.findOne({ id: tripId, organizationId: orgId });
 
     if (!trip) {
       return errorResponse(res, "Trip not found", 404);
@@ -200,11 +276,43 @@ const updateTrip = async (req, res, next) => {
 
     const { vehicleId, driverId, start, end, distance, duration, status } = req.body;
 
-    if (vehicleId) trip.vehicleId = vehicleId.trim().toUpperCase();
-    if (driverId !== undefined) trip.driverId = driverId.trim().toUpperCase();
-    if (start) trip.start = start.trim();
-    if (end) trip.end = end.trim();
-    if (distance !== undefined) trip.distance = Number(distance);
+    if (vehicleId) {
+      const vId = vehicleId.trim().toUpperCase();
+      const vehicle = await Vehicle.findOne({ id: vId, organizationId: orgId });
+      if (!vehicle) {
+        return errorResponse(res, `Vehicle '${vId}' not found in your organization`, 404);
+      }
+      trip.vehicleId = vId;
+      trip.vehicleRef = vehicle._id;
+    }
+
+    if (driverId !== undefined) {
+      const dId = driverId.trim().toUpperCase();
+      if (dId) {
+        const driver = await Driver.findOne({ id: dId, organizationId: orgId });
+        if (!driver) {
+          return errorResponse(res, `Driver '${dId}' not found in your organization`, 404);
+        }
+        trip.driverId = dId;
+        trip.driverRef = driver._id;
+      } else {
+        trip.driverId = "";
+        trip.driverRef = null;
+      }
+    }
+
+    if (start) {
+      trip.start = start.trim();
+      trip.startDestination = start.trim();
+    }
+    if (end) {
+      trip.end = end.trim();
+      trip.endDestination = end.trim();
+    }
+    if (distance !== undefined) {
+      trip.distance = Number(distance);
+      trip.distanceKm = Number(distance);
+    }
     if (duration) trip.duration = duration.trim();
     if (status) trip.status = status;
 
@@ -223,14 +331,165 @@ const updateTrip = async (req, res, next) => {
  */
 const deleteTrip = async (req, res, next) => {
   try {
+    const orgId = req.user.organizationId;
     const tripId = req.params.id.toUpperCase();
-    const trip = await Trip.findOneAndDelete({ id: tripId });
+    const trip = await Trip.findOne({ id: tripId, organizationId: orgId });
 
     if (!trip) {
       return errorResponse(res, "Trip not found", 404);
     }
 
-    return successResponse(res, null, `Trip ${tripId} deleted successfully`);
+    await Trip.findOneAndDelete({ id: tripId, organizationId: orgId });
+
+    return successResponse(res, null, "Trip deleted successfully");
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Regional Transit Corridors Coordinate Dictionary (Andhra Pradesh & Telangana Hubs)
+ */
+const CITY_COORDINATES = {
+  hyderabad: { name: "Hyderabad", lat: 17.3850, lng: 78.4867 },
+  secunderabad: { name: "Secunderabad", lat: 17.4399, lng: 78.4983 },
+  vijayawada: { name: "Vijayawada", lat: 16.5062, lng: 80.6480 },
+  guntur: { name: "Guntur", lat: 16.3067, lng: 80.4365 },
+  warangal: { name: "Warangal", lat: 17.9689, lng: 79.5941 },
+  visakhapatnam: { name: "Visakhapatnam", lat: 17.6868, lng: 83.2185 },
+  khammam: { name: "Khammam", lat: 17.2473, lng: 80.1514 },
+  karimnagar: { name: "Karimnagar", lat: 18.4386, lng: 79.1288 },
+  nizamabad: { name: "Nizamabad", lat: 18.6725, lng: 78.0941 },
+  bengaluru: { name: "Bengaluru", lat: 12.9716, lng: 77.5946 },
+  bangalore: { name: "Bengaluru", lat: 12.9716, lng: 77.5946 },
+  nagpur: { name: "Nagpur", lat: 21.1458, lng: 79.0882 }
+};
+
+const routeCache = new Map();
+
+async function geocodeCity(cityName) {
+  if (!cityName) return null;
+  const clean = cityName.trim().toLowerCase();
+  if (CITY_COORDINATES[clean]) {
+    return { ...CITY_COORDINATES[clean] };
+  }
+  return {
+    name: cityName,
+    lat: 17.3850,
+    lng: 78.4867
+  };
+}
+
+async function resolveTripRoadRoute(trip) {
+  const cacheKey = `${trip.start}_${trip.end}`.toLowerCase();
+  if (routeCache.has(cacheKey)) {
+    const cached = routeCache.get(cacheKey);
+    return {
+      tripId: trip.id,
+      vehicleId: trip.vehicleId,
+      driverId: trip.driverId,
+      status: trip.status,
+      ...cached
+    };
+  }
+
+  const origin = await geocodeCity(trip.start || trip.startDestination);
+  const destination = await geocodeCity(trip.end || trip.endDestination);
+
+  let coordinates = [];
+  let calculatedDistanceKm = trip.distance || 0;
+  let formattedDuration = trip.duration || "N/A";
+  let isRoadRoute = false;
+
+  try {
+    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?overview=full&geometries=geojson`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+
+    const osrmRes = await fetch(osrmUrl, {
+      signal: controller.signal,
+      headers: { "User-Agent": "FleetFlow-App/1.0" }
+    });
+    clearTimeout(timeout);
+
+    if (osrmRes.ok) {
+      const osrmData = await osrmRes.json();
+      if (osrmData.code === "Ok" && osrmData.routes && osrmData.routes.length > 0) {
+        const bestRoute = osrmData.routes[0];
+        coordinates = bestRoute.geometry.coordinates.map((c) => [c[1], c[0]]);
+        calculatedDistanceKm = parseFloat((bestRoute.distance / 1000).toFixed(1));
+
+        const totalMinutes = Math.round(bestRoute.duration / 60);
+        const hours = Math.floor(totalMinutes / 60);
+        const mins = totalMinutes % 60;
+        formattedDuration = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+        isRoadRoute = true;
+      }
+    }
+  } catch (err) {
+    console.warn(`OSRM routing failed for trip ${trip.id}:`, err.message);
+  }
+
+  if (!coordinates.length) {
+    coordinates = [
+      [origin.lat, origin.lng],
+      [destination.lat, destination.lng]
+    ];
+    isRoadRoute = false;
+  }
+
+  const result = {
+    distanceKm: calculatedDistanceKm,
+    durationFormatted: formattedDuration,
+    coordinates,
+    isRoadRoute,
+    cachedAt: new Date().toISOString(),
+    vehicleGpsFeed: null
+  };
+
+  if (isRoadRoute) {
+    routeCache.set(cacheKey, result);
+  }
+
+  return {
+    tripId: trip.id,
+    vehicleId: trip.vehicleId,
+    driverId: trip.driverId,
+    status: trip.status,
+    origin,
+    destination,
+    ...result
+  };
+}
+
+/**
+ * @desc    Get real road route geometry & coordinates for a trip
+ * @route   GET /api/trips/:id/route
+ * @access  Private (Admin or Assigned Employee)
+ */
+const getTripRoute = async (req, res, next) => {
+  try {
+    const orgId = req.user.organizationId;
+    const tripId = req.params.id.toUpperCase();
+    const trip = await Trip.findOne({ id: tripId, organizationId: orgId });
+
+    if (!trip) {
+      return errorResponse(res, "Trip not found", 404);
+    }
+
+    // Verify employee authorization
+    if (req.user.role === "EMPLOYEE") {
+      const { driverId, assignedVehicleIds } = await getEmployeeAccessContext(req.user);
+      const isAssigned =
+        (driverId && trip.driverId === driverId) ||
+        (assignedVehicleIds && assignedVehicleIds.includes(trip.vehicleId));
+      if (!isAssigned) {
+        return errorResponse(res, "Access denied to this trip route", 403);
+      }
+    }
+
+    const routeData = await resolveTripRoadRoute(trip);
+    return successResponse(res, routeData, "Route calculated successfully");
   } catch (err) {
     next(err);
   }
@@ -242,5 +501,6 @@ module.exports = {
   createTrip,
   updateTripStatus,
   updateTrip,
-  deleteTrip
+  deleteTrip,
+  getTripRoute
 };

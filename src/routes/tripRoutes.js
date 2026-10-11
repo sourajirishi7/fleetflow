@@ -5,7 +5,8 @@ const {
   createTrip,
   updateTripStatus,
   updateTrip,
-  deleteTrip
+  deleteTrip,
+  getTripRoute
 } = require("../controllers/tripController");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
 
@@ -22,7 +23,8 @@ router.route("/:id")
   .put(requireAdmin, updateTrip)
   .delete(requireAdmin, deleteTrip);
 
-// Both Admin and assigned Employees can update trip status
+// Both Admin and assigned Employees can update trip status and view route geometry
+router.get("/:id/route", getTripRoute);
 router.patch("/:id/status", updateTripStatus);
 
 module.exports = router;

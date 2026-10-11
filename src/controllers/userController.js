@@ -2,13 +2,14 @@ const User = require("../models/User");
 const { successResponse, errorResponse } = require("../utils/response");
 
 /**
- * @desc    Get all users
+ * @desc    Get all users in authenticated organization
  * @route   GET /api/users
  * @access  Private (Admin only)
  */
 const getUsers = async (req, res, next) => {
   try {
-    const users = await User.find().sort({ createdAt: -1 });
+    const orgId = req.user.organizationId;
+    const users = await User.find({ organizationId: orgId }).sort({ createdAt: -1 });
     return successResponse(res, users, "Users retrieved successfully");
   } catch (err) {
     next(err);
@@ -16,7 +17,7 @@ const getUsers = async (req, res, next) => {
 };
 
 /**
- * @desc    Get single user by ID
+ * @desc    Get single user by ID within organization
  * @route   GET /api/users/:id
  * @access  Private (Admin or Self)
  */
@@ -26,6 +27,17 @@ const getUserById = async (req, res, next) => {
     if (!user) {
       return errorResponse(res, "User not found", 404);
     }
+
+    // Organization data isolation check
+    if (user.organizationId && req.user.organizationId && user.organizationId.toString() !== req.user.organizationId.toString()) {
+      return errorResponse(res, "Access denied. User belongs to another organization.", 403);
+    }
+
+    // Role check: Employee can only view themselves
+    if (req.user.role === "EMPLOYEE" && req.user._id.toString() !== user._id.toString()) {
+      return errorResponse(res, "Access denied.", 403);
+    }
+
     return successResponse(res, user, "User retrieved successfully");
   } catch (err) {
     next(err);
@@ -33,15 +45,16 @@ const getUserById = async (req, res, next) => {
 };
 
 /**
- * @desc    Create new user (e.g. employee)
+ * @desc    Create new employee user in authenticated organization
  * @route   POST /api/users
  * @access  Private (Admin only)
  */
 const createUser = async (req, res, next) => {
   try {
-    const { username, email, password, name, role, phone, driverId } = req.body;
+    const { username, email, password, name, fullName, phone, driverId } = req.body;
+    const effectiveName = (name || fullName || "").trim();
 
-    if (!username || !email || !password || !name) {
+    if (!username || !email || !password || !effectiveName) {
       return errorResponse(res, "Username, email, password, and name are required", 400);
     }
 
@@ -49,7 +62,13 @@ const createUser = async (req, res, next) => {
       return errorResponse(res, "Password must be at least 6 characters long", 400);
     }
 
-    // Check duplicate username
+    // Obtain organizationId strictly from authenticated admin session
+    const organizationId = req.user.organizationId;
+    if (!organizationId) {
+      return errorResponse(res, "Admin is not associated with an organization", 400);
+    }
+
+    // Check duplicate username globally/in-org
     const existingUsername = await User.findOne({ username: username.trim() });
     if (existingUsername) {
       return errorResponse(res, "Username is already taken", 409);
@@ -61,44 +80,62 @@ const createUser = async (req, res, next) => {
       return errorResponse(res, "Email is already registered", 409);
     }
 
-    // Default to EMPLOYEE unless valid role specified by Admin
-    const assignedRole = role === "ADMIN" ? "ADMIN" : "EMPLOYEE";
-
+    // Force role to EMPLOYEE on backend
     const newUser = await User.create({
+      organizationId,
       username: username.trim(),
       email: email.trim().toLowerCase(),
       password,
-      name: name.trim(),
-      role: assignedRole,
+      fullName: effectiveName,
+      name: effectiveName,
+      role: "EMPLOYEE",
       phone: phone ? phone.trim() : "",
       driverId: driverId ? driverId.trim() : "",
-      status: "Active"
+      isActive: true,
+      status: "Active",
+      createdBy: req.user._id
     });
 
-    return successResponse(res, newUser.toJSON(), "User created successfully", 201);
+    return successResponse(res, newUser.toJSON(), "Employee user created successfully", 201);
   } catch (err) {
     next(err);
   }
 };
 
 /**
- * @desc    Update user
+ * @desc    Update user within organization
  * @route   PUT /api/users/:id
  * @access  Private (Admin only)
  */
 const updateUser = async (req, res, next) => {
   try {
-    const { name, phone, role, status, driverId } = req.body;
+    const { name, fullName, phone, role, status, isActive, driverId } = req.body;
     const user = await User.findById(req.params.id);
 
     if (!user) {
       return errorResponse(res, "User not found", 404);
     }
 
-    if (name) user.name = name.trim();
+    // Organization data isolation
+    if (user.organizationId && req.user.organizationId && user.organizationId.toString() !== req.user.organizationId.toString()) {
+      return errorResponse(res, "Access denied to cross-organization user", 403);
+    }
+
+    const effectiveName = (name || fullName);
+    if (effectiveName) {
+      user.name = effectiveName.trim();
+      user.fullName = effectiveName.trim();
+    }
     if (phone !== undefined) user.phone = phone.trim();
     if (role && ["ADMIN", "EMPLOYEE"].includes(role)) user.role = role;
-    if (status && ["Active", "Inactive"].includes(status)) user.status = status;
+    if (status && ["Active", "Inactive"].includes(status)) {
+      user.status = status;
+      user.isActive = status === "Active";
+    }
+    if (isActive !== undefined) {
+      user.isActive = Boolean(isActive);
+      user.status = user.isActive ? "Active" : "Inactive";
+    }
     if (driverId !== undefined) user.driverId = driverId.trim();
 
     await user.save();
@@ -110,19 +147,24 @@ const updateUser = async (req, res, next) => {
 };
 
 /**
- * @desc    Change user status (Active / Inactive)
+ * @desc    Change user status (Active / Inactive) within organization
  * @route   PATCH /api/users/:id/status
  * @access  Private (Admin only)
  */
 const toggleUserStatus = async (req, res, next) => {
   try {
-    const { status } = req.body;
-    if (!status || !["Active", "Inactive"].includes(status)) {
+    const { status, isActive } = req.body;
+    let targetStatus = status;
+    if (!targetStatus && isActive !== undefined) {
+      targetStatus = isActive ? "Active" : "Inactive";
+    }
+
+    if (!targetStatus || !["Active", "Inactive"].includes(targetStatus)) {
       return errorResponse(res, "Status must be either 'Active' or 'Inactive'", 400);
     }
 
     // Prevent admin from deactivating themselves
-    if (req.user._id.toString() === req.params.id && status === "Inactive") {
+    if (req.user._id.toString() === req.params.id && targetStatus === "Inactive") {
       return errorResponse(res, "Administrators cannot deactivate their own account", 400);
     }
 
@@ -131,17 +173,23 @@ const toggleUserStatus = async (req, res, next) => {
       return errorResponse(res, "User not found", 404);
     }
 
-    user.status = status;
+    // Organization boundary
+    if (user.organizationId && req.user.organizationId && user.organizationId.toString() !== req.user.organizationId.toString()) {
+      return errorResponse(res, "Access denied to cross-organization user", 403);
+    }
+
+    user.status = targetStatus;
+    user.isActive = targetStatus === "Active";
     await user.save();
 
-    return successResponse(res, user.toJSON(), `User account status changed to ${status}`);
+    return successResponse(res, user.toJSON(), `User account status changed to ${targetStatus}`);
   } catch (err) {
     next(err);
   }
 };
 
 /**
- * @desc    Delete user
+ * @desc    Delete user within organization
  * @route   DELETE /api/users/:id
  * @access  Private (Admin only)
  */
@@ -151,10 +199,17 @@ const deleteUser = async (req, res, next) => {
       return errorResponse(res, "Administrators cannot delete their own account", 400);
     }
 
-    const user = await User.findByIdAndDelete(req.params.id);
+    const user = await User.findById(req.params.id);
     if (!user) {
       return errorResponse(res, "User not found", 404);
     }
+
+    // Organization boundary
+    if (user.organizationId && req.user.organizationId && user.organizationId.toString() !== req.user.organizationId.toString()) {
+      return errorResponse(res, "Access denied to cross-organization user", 403);
+    }
+
+    await User.findByIdAndDelete(req.params.id);
 
     return successResponse(res, null, "User deleted successfully");
   } catch (err) {

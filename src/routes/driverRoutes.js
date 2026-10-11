@@ -2,6 +2,7 @@ const express = require("express");
 const {
   getDrivers,
   getDriverById,
+  getMyDriverProfile,
   createDriver,
   updateDriver,
   reassignDriver,
@@ -13,8 +14,11 @@ const router = express.Router();
 
 router.use(requireAuth);
 
+// Employee can retrieve their own profile without seeing the directory
+router.get("/me", getMyDriverProfile);
+
 router.route("/")
-  .get(getDrivers)
+  .get(requireAdmin, getDrivers)
   .post(requireAdmin, createDriver);
 
 router.route("/:id")
@@ -25,3 +29,4 @@ router.route("/:id")
 router.patch("/:id/assign", requireAdmin, reassignDriver);
 
 module.exports = router;
+

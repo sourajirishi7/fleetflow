@@ -2,13 +2,27 @@ const mongoose = require("mongoose");
 
 const vehicleSchema = new mongoose.Schema(
   {
+    organizationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
+      required: [true, "Organization ID is required"],
+      index: true
+    },
     id: {
       type: String,
       required: [true, "Vehicle ID is required"],
-      unique: true,
       trim: true,
-      uppercase: true,
-      index: true
+      uppercase: true
+    },
+    registrationNumber: {
+      type: String,
+      trim: true,
+      uppercase: true
+    },
+    plate: {
+      type: String,
+      trim: true,
+      uppercase: true
     },
     make: {
       type: String,
@@ -20,19 +34,11 @@ const vehicleSchema = new mongoose.Schema(
       required: [true, "Vehicle model is required"],
       trim: true
     },
-    plate: {
-      type: String,
-      required: [true, "License plate is required"],
-      unique: true,
-      trim: true,
-      uppercase: true,
-      index: true
-    },
     year: {
       type: Number,
       required: [true, "Manufacturing year is required"],
       min: [1980, "Year must be 1980 or later"],
-      max: [2030, "Year cannot be far in the future"]
+      max: [2035, "Year cannot be far in the future"]
     },
     odometer: {
       type: Number,
@@ -61,6 +67,11 @@ const vehicleSchema = new mongoose.Schema(
       trim: true,
       default: ""
     },
+    driverRef: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Driver",
+      default: null
+    },
     lastService: {
       type: String,
       default: () => new Date().toISOString().split("T")[0]
@@ -79,9 +90,25 @@ const vehicleSchema = new mongoose.Schema(
   }
 );
 
+// Sync registrationNumber and plate
+vehicleSchema.pre("validate", function (next) {
+  if (this.plate && !this.registrationNumber) {
+    this.registrationNumber = this.plate;
+  } else if (this.registrationNumber && !this.plate) {
+    this.plate = this.registrationNumber;
+  }
+  next();
+});
+
+// Compound unique indexes per organization
+vehicleSchema.index({ organizationId: 1, id: 1 }, { unique: true });
+vehicleSchema.index({ organizationId: 1, registrationNumber: 1 }, { unique: true });
+
 vehicleSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.__v;
+  if (!obj.plate) obj.plate = obj.registrationNumber;
+  if (!obj.registrationNumber) obj.registrationNumber = obj.plate;
   return obj;
 };
 

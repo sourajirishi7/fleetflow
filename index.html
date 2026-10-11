@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FleetFlow — Fleet Management System</title>
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -29,27 +30,27 @@
       <nav class="side-nav" id="side-nav">
         <button class="nav-item is-active" data-section="dashboard" aria-current="page">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4v9zm0 7h6v-5H4v5zm8 0h8V11h-8v9zm0-16v5h8V4h-8z"/></svg>
-          <span>Dashboard</span>
+          <span id="nav-label-dashboard">Dashboard</span>
         </button>
         <button class="nav-item" data-section="vehicles">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13l1.5-4.5A2 2 0 0 1 6.4 7h11.2a2 2 0 0 1 1.9 1.5L21 13v6a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-1H6v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6zm4.5 2.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm9 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/></svg>
-          <span>Vehicles</span>
+          <span id="nav-label-vehicles">Vehicles</span>
         </button>
-        <button class="nav-item" data-section="drivers">
+        <button class="nav-item admin-only" data-section="drivers" id="nav-drivers">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z"/></svg>
-          <span>Drivers</span>
+          <span id="nav-label-drivers">Drivers</span>
         </button>
         <button class="nav-item" data-section="fuel">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h8a2 2 0 0 1 2 2v11a3 3 0 1 1-6 0V9h-2v11H5V5a2 2 0 0 1 2-2zm12 5h1v8a2 2 0 0 0 4 0V9.5L20 6h-1z"/></svg>
-          <span>Fuel</span>
+          <span id="nav-label-fuel">Fuel</span>
         </button>
         <button class="nav-item" data-section="maintenance">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 7l-4-4-2.5 2.5 4 4L21 7zM3 17.5V21h3.5l10-10-3.5-3.5-10 10z"/></svg>
-          <span>Maintenance</span>
+          <span id="nav-label-maintenance">Maintenance</span>
         </button>
         <button class="nav-item" data-section="routes">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 14.5 9 2.5 2.5 0 0 1 12 11.5z"/></svg>
-          <span>Routes</span>
+          <span id="nav-label-routes">Routes</span>
         </button>
         <button class="nav-item admin-only" data-section="users" id="nav-users">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
@@ -156,7 +157,7 @@
               <option value="In Shop">In Shop</option>
               <option value="Offline">Offline</option>
             </select>
-            <button class="btn btn-primary" id="add-vehicle-btn" type="button">+ Add Vehicle</button>
+            <button class="btn btn-primary admin-only" id="add-vehicle-btn" type="button">+ Add Vehicle</button>
           </div>
           <div class="table-wrap card">
             <table>
@@ -177,7 +178,7 @@
           </div>
         </section>
 
-        <section class="page" id="page-drivers" hidden>
+        <section class="page admin-only" id="page-drivers" hidden>
           <div class="action-bar">
             <label class="sr-only" for="driver-search">Search drivers</label>
             <input type="search" id="driver-search" placeholder="Search by name, license or phone...">
@@ -186,7 +187,7 @@
               <button type="button" class="chip" data-driver-filter="Active">Active</button>
               <button type="button" class="chip" data-driver-filter="Off-Duty">Off-Duty</button>
             </div>
-            <button class="btn btn-primary" id="add-driver-btn" type="button">+ Add Driver</button>
+            <button class="btn btn-primary admin-only" id="add-driver-btn" type="button">+ Add Driver</button>
           </div>
           <div class="table-wrap card">
             <table>
@@ -246,20 +247,38 @@
 
         <section class="page" id="page-routes" hidden>
           <article class="card map-card">
-            <div class="map-banner">LIVE ROUTE TRACKING</div>
-            <div class="map-mock" aria-hidden="true">
-              <div class="road h1"></div>
-              <div class="road h2"></div>
-              <div class="road v1"></div>
-              <div class="road v2"></div>
-              <div class="route-line"></div>
-              <span class="pin pin-a">A</span>
-              <span class="pin pin-b">B</span>
-              <span class="pin pin-c">C</span>
-              <span class="truck-marker" title="FL-101">FL-101</span>
+            <div class="map-head">
+              <div>
+                <span class="map-banner" id="map-banner">PLANNED ROUTE MAP · HIGHWAY ROUTING</span>
+                <h2 id="map-trip-title" style="margin: 0; font-size: 1.1rem; color: var(--text);">Select a trip to trace planned route</h2>
+              </div>
+              <div class="map-badge" id="map-status-pill">
+                <span class="badge-dot" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#16a34a; margin-right:6px;"></span>
+                <span id="map-status-text">Road Network Active</span>
+              </div>
             </div>
-            <p class="map-caption">Hyderabad → Vijayawada corridor · Vehicle FL-101 · Driver Sarah Johnson</p>
+
+            <div id="route-map" class="route-map-container" style="height: 380px; width: 100%; border-radius: 12px; position: relative; overflow: hidden; margin-top: 12px; background: #e2e8f0;">
+              <!-- Real Leaflet interactive map -->
+              <div id="map-loading" class="map-loading-overlay" hidden>
+                <div class="spinner"></div>
+                <span id="map-loading-text">Calculating road route via OSRM...</span>
+              </div>
+              <div id="map-error" class="map-error-overlay" hidden>
+                <span id="map-error-text">Unable to load road route.</span>
+                <button type="button" class="btn btn-ghost" id="map-retry-btn" style="margin-top: 8px;">Retry Route</button>
+              </div>
+            </div>
+
+            <div class="map-foot" id="map-foot" style="margin-top: 12px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px;">
+              <p class="map-caption" id="map-caption" style="margin: 0;">Click any trip in the table below to trace its road trajectory on the map.</p>
+              <div class="map-metrics" id="map-metrics" style="display: flex; gap: 16px; font-size: 0.85rem; color: var(--muted);" hidden>
+                <span><strong>Road Distance:</strong> <span id="map-metric-distance">—</span></span>
+                <span><strong>Estimated Duration:</strong> <span id="map-metric-duration">—</span></span>
+              </div>
+            </div>
           </article>
+
           <div class="table-wrap card">
             <table>
               <thead>
@@ -272,6 +291,7 @@
                   <th>Distance</th>
                   <th>Duration</th>
                   <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody id="route-table-body"></tbody>
@@ -331,6 +351,7 @@
 
   <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="true"></div>
 
+  <script src="vendor/leaflet/leaflet.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

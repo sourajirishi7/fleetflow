@@ -13,7 +13,8 @@ router.use(requireAuth);
 
 router.route("/")
   .get(getMaintenanceRecords)
-  .post(requireAdmin, createMaintenanceRecord);
+  .post(createMaintenanceRecord);
+
 
 router.route("/:id")
   .delete(requireAdmin, deleteMaintenanceRecord);

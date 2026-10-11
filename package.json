@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "bootstrap:admin": "node src/scripts/bootstrapAdmin.js",
+    "setup:admin": "node src/scripts/initAdmin.js",
+    "bootstrap:admin": "node src/scripts/initAdmin.js",
     "seed": "node src/scripts/seed.js",
     "test": "node tests/runAllTests.js"
   },

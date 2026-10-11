@@ -2,13 +2,17 @@ const mongoose = require("mongoose");
 
 const maintenanceRecordSchema = new mongoose.Schema(
   {
+    organizationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
+      required: [true, "Organization ID is required"],
+      index: true
+    },
     id: {
       type: String,
       required: [true, "Maintenance ID is required"],
-      unique: true,
       trim: true,
-      uppercase: true,
-      index: true
+      uppercase: true
     },
     vehicleId: {
       type: String,
@@ -16,9 +20,18 @@ const maintenanceRecordSchema = new mongoose.Schema(
       trim: true,
       index: true
     },
-    type: {
+    vehicleRef: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Vehicle",
+      default: null
+    },
+    reportedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null
+    },
+    maintenanceType: {
       type: String,
-      required: [true, "Service type is required"],
       enum: {
         values: [
           "Oil Change",
@@ -32,9 +45,15 @@ const maintenanceRecordSchema = new mongoose.Schema(
         message: "Invalid maintenance type"
       }
     },
+    type: {
+      type: String
+    },
+    serviceDate: {
+      type: String,
+      match: [/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"]
+    },
     date: {
       type: String,
-      required: [true, "Scheduled date is required"],
       match: [/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"]
     },
     cost: {
@@ -58,6 +77,11 @@ const maintenanceRecordSchema = new mongoose.Schema(
       },
       default: "Upcoming"
     },
+    description: {
+      type: String,
+      trim: true,
+      default: ""
+    },
     notes: {
       type: String,
       trim: true,
@@ -69,9 +93,29 @@ const maintenanceRecordSchema = new mongoose.Schema(
   }
 );
 
+// Sync aliases
+maintenanceRecordSchema.pre("validate", function (next) {
+  if (this.type && !this.maintenanceType) this.maintenanceType = this.type;
+  if (this.maintenanceType && !this.type) this.type = this.maintenanceType;
+  if (this.date && !this.serviceDate) this.serviceDate = this.date;
+  if (this.serviceDate && !this.date) this.date = this.serviceDate;
+  if (this.notes && !this.description) this.description = this.notes;
+  if (this.description && !this.notes) this.notes = this.description;
+  next();
+});
+
+// Compound unique index per organization
+maintenanceRecordSchema.index({ organizationId: 1, id: 1 }, { unique: true });
+
 maintenanceRecordSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.__v;
+  if (!obj.type) obj.type = obj.maintenanceType;
+  if (!obj.maintenanceType) obj.maintenanceType = obj.type;
+  if (!obj.date) obj.date = obj.serviceDate;
+  if (!obj.serviceDate) obj.serviceDate = obj.date;
+  if (!obj.notes) obj.notes = obj.description;
+  if (!obj.description) obj.description = obj.notes;
   return obj;
 };
 

@@ -3,16 +3,40 @@ const Driver = require("../models/Driver");
 const Trip = require("../models/Trip");
 const Activity = require("../models/Activity");
 const { successResponse, errorResponse } = require("../utils/response");
+const { getEmployeeAccessContext } = require("../utils/rbac");
 
 /**
- * @desc    Get all vehicles (with optional search and status filter)
+ * Generate next Vehicle ID within organization (e.g. FL-109)
+ */
+const getNextVehicleId = async (organizationId) => {
+  const vehicles = await Vehicle.find({ organizationId }, "id");
+  const nums = vehicles.map((v) => {
+    const raw = String(v.id).replace(/\D/g, "");
+    return Number(raw) || 0;
+  });
+  const max = nums.length ? Math.max(...nums) : 100;
+  return "FL-" + (max + 1);
+};
+
+/**
+ * @desc    Get vehicles (Admin: all org fleet, Employee: assigned vehicles only)
  * @route   GET /api/vehicles
  * @access  Private
  */
 const getVehicles = async (req, res, next) => {
   try {
+    const orgId = req.user.organizationId;
     const { status, search } = req.query;
-    let query = {};
+    let query = { organizationId: orgId };
+
+    // Role-based access restriction
+    if (req.user.role === "EMPLOYEE") {
+      const { assignedVehicleIds } = await getEmployeeAccessContext(req.user);
+      if (!assignedVehicleIds || assignedVehicleIds.length === 0) {
+        return successResponse(res, [], "No vehicles assigned to this employee");
+      }
+      query.id = { $in: assignedVehicleIds };
+    }
 
     if (status && status !== "all") {
       query.status = status;
@@ -20,12 +44,29 @@ const getVehicles = async (req, res, next) => {
 
     if (search) {
       const regex = new RegExp(search.trim(), "i");
-      query.$or = [
+      const searchConditions = [
         { id: regex },
         { make: regex },
         { model: regex },
-        { plate: regex }
+        { plate: regex },
+        { registrationNumber: regex }
       ];
+
+      if (query.id) {
+        query.$and = [
+          { organizationId: orgId },
+          { id: query.id },
+          { $or: searchConditions }
+        ];
+        delete query.id;
+        delete query.organizationId;
+      } else {
+        query.$and = [
+          { organizationId: orgId },
+          { $or: searchConditions }
+        ];
+        delete query.organizationId;
+      }
     }
 
     const vehicles = await Vehicle.find(query).sort({ id: 1 });
@@ -36,21 +77,37 @@ const getVehicles = async (req, res, next) => {
 };
 
 /**
- * @desc    Get single vehicle by ID (e.g., 'FL-101') + recent trips
+ * @desc    Get single vehicle by ID within organization
  * @route   GET /api/vehicles/:id
  * @access  Private
  */
 const getVehicleById = async (req, res, next) => {
   try {
+    const orgId = req.user.organizationId;
     const vehicleId = req.params.id.toUpperCase();
-    const vehicle = await Vehicle.findOne({ id: vehicleId });
+
+    // Check employee authorization
+    if (req.user.role === "EMPLOYEE") {
+      const { assignedVehicleIds } = await getEmployeeAccessContext(req.user);
+      if (!assignedVehicleIds || !assignedVehicleIds.includes(vehicleId)) {
+        return errorResponse(res, "Access denied to this vehicle record", 403);
+      }
+    }
+
+    const vehicle = await Vehicle.findOne({ id: vehicleId, organizationId: orgId });
 
     if (!vehicle) {
       return errorResponse(res, "Vehicle not found", 404);
     }
 
-    // Also fetch recent trips for this vehicle
-    const recentTrips = await Trip.find({ vehicleId }).sort({ createdAt: -1 }).limit(5);
+    // Also fetch recent trips for this vehicle within organization
+    let tripQuery = { vehicleId, organizationId: orgId };
+    if (req.user.role === "EMPLOYEE") {
+      const { driverId } = await getEmployeeAccessContext(req.user);
+      if (driverId) tripQuery.driverId = driverId;
+    }
+
+    const recentTrips = await Trip.find(tripQuery).sort({ createdAt: -1 }).limit(5);
 
     return successResponse(
       res,
@@ -66,67 +123,86 @@ const getVehicleById = async (req, res, next) => {
 };
 
 /**
- * @desc    Create new vehicle
+ * @desc    Create new vehicle in organization
  * @route   POST /api/vehicles
  * @access  Private (Admin only)
  */
 const createVehicle = async (req, res, next) => {
   try {
-    let { id, make, model, plate, year, odometer, fuelType, status, driverId } = req.body;
+    const orgId = req.user.organizationId;
+    let { id, make, model, plate, registrationNumber, year, odometer, fuelType, status, driverId } = req.body;
+    const effectivePlate = (plate || registrationNumber || "").trim().toUpperCase();
 
-    if (!id || !make || !model || !plate || !year) {
-      return errorResponse(res, "ID, make, model, license plate, and year are required", 400);
+    if (!make || !model || !effectivePlate || !year) {
+      return errorResponse(res, "Make, model, license plate, and manufacturing year are required", 400);
     }
 
-    id = id.trim().toUpperCase();
-    plate = plate.trim().toUpperCase();
+    if (!id) {
+      id = await getNextVehicleId(orgId);
+    } else {
+      id = id.trim().toUpperCase();
+    }
 
-    // Check duplicate ID
-    const existingId = await Vehicle.findOne({ id });
+    // Check duplicate ID in organization
+    const existingId = await Vehicle.findOne({ id, organizationId: orgId });
     if (existingId) {
-      return errorResponse(res, `Vehicle ID '${id}' already exists`, 409);
+      return errorResponse(res, `Vehicle ID '${id}' already exists in your organization`, 409);
     }
 
-    // Check duplicate Plate
-    const existingPlate = await Vehicle.findOne({ plate });
+    // Check duplicate plate in organization
+    const existingPlate = await Vehicle.findOne({
+      $or: [{ plate: effectivePlate }, { registrationNumber: effectivePlate }],
+      organizationId: orgId
+    });
     if (existingPlate) {
-      return errorResponse(res, `License plate '${plate}' is already registered`, 409);
+      return errorResponse(res, `License plate '${effectivePlate}' is already registered in your organization`, 409);
+    }
+
+    // Validate assigned driver if provided
+    let assignedDriver = null;
+    if (driverId) {
+      const dId = driverId.trim().toUpperCase();
+      assignedDriver = await Driver.findOne({ id: dId, organizationId: orgId });
+      if (!assignedDriver) {
+        return errorResponse(res, `Driver '${dId}' not found in your organization`, 404);
+      }
     }
 
     const newVehicle = await Vehicle.create({
+      organizationId: orgId,
       id,
+      registrationNumber: effectivePlate,
+      plate: effectivePlate,
       make: make.trim(),
       model: model.trim(),
-      plate,
       year: Number(year),
-      odometer: Number(odometer) || 0,
+      odometer: odometer !== undefined ? Number(odometer) : 0,
       fuelType: fuelType || "Diesel",
       status: status || "Active",
-      driverId: driverId ? driverId.trim().toUpperCase() : ""
+      driverId: driverId ? driverId.trim().toUpperCase() : "",
+      driverRef: assignedDriver ? assignedDriver._id : null
     });
 
-    // If assigned to a driver, update driver's vehicleId
-    if (driverId) {
-      const driver = await Driver.findOne({ id: driverId.trim().toUpperCase() });
-      if (driver) {
-        // If driver had another vehicle, clear that vehicle's driverId
-        if (driver.vehicleId && driver.vehicleId !== id) {
-          await Vehicle.findOneAndUpdate({ id: driver.vehicleId }, { driverId: "" });
-        }
-        driver.vehicleId = id;
-        await driver.save();
+    // If driver assigned, sync driver's vehicleId
+    if (assignedDriver) {
+      if (assignedDriver.vehicleId && assignedDriver.vehicleId !== id) {
+        await Vehicle.findOneAndUpdate({ id: assignedDriver.vehicleId, organizationId: orgId }, { driverId: "", driverRef: null });
       }
+      assignedDriver.vehicleId = id;
+      assignedDriver.vehicleRef = newVehicle._id;
+      await assignedDriver.save();
     }
 
     // Log Activity
     await Activity.create({
-      icon: "🚚",
-      text: `Vehicle ${id} (${make} ${model}) added to the fleet`,
+      organizationId: orgId,
+      icon: "🚛",
+      text: `Vehicle ${newVehicle.id} (${newVehicle.make} ${newVehicle.model}) was added to the fleet`,
       time: "Just now",
       status: "Info"
     });
 
-    return successResponse(res, newVehicle, "Vehicle added successfully", 201);
+    return successResponse(res, newVehicle, "Vehicle created successfully", 201);
   } catch (err) {
     next(err);
   }
@@ -139,55 +215,65 @@ const createVehicle = async (req, res, next) => {
  */
 const updateVehicle = async (req, res, next) => {
   try {
+    const orgId = req.user.organizationId;
     const vehicleId = req.params.id.toUpperCase();
-    const vehicle = await Vehicle.findOne({ id: vehicleId });
+    const vehicle = await Vehicle.findOne({ id: vehicleId, organizationId: orgId });
 
     if (!vehicle) {
       return errorResponse(res, "Vehicle not found", 404);
     }
 
-    const { make, model, plate, year, odometer, fuelType, status, driverId } = req.body;
+    const { make, model, plate, registrationNumber, year, odometer, fuelType, status, driverId, lastService, nextService } = req.body;
+
+    const effectivePlate = plate || registrationNumber;
+    if (effectivePlate) {
+      const trimmedPlate = effectivePlate.trim().toUpperCase();
+      const duplicatePlate = await Vehicle.findOne({
+        $or: [{ plate: trimmedPlate }, { registrationNumber: trimmedPlate }],
+        organizationId: orgId,
+        id: { $ne: vehicleId }
+      });
+      if (duplicatePlate) {
+        return errorResponse(res, `License plate '${trimmedPlate}' is already registered to another vehicle in your organization`, 409);
+      }
+      vehicle.plate = trimmedPlate;
+      vehicle.registrationNumber = trimmedPlate;
+    }
 
     if (make) vehicle.make = make.trim();
     if (model) vehicle.model = model.trim();
-    if (plate) {
-      const trimmedPlate = plate.trim().toUpperCase();
-      const duplicatePlate = await Vehicle.findOne({ plate: trimmedPlate, id: { $ne: vehicleId } });
-      if (duplicatePlate) {
-        return errorResponse(res, `License plate '${trimmedPlate}' is already used by another vehicle`, 409);
-      }
-      vehicle.plate = trimmedPlate;
-    }
-    if (year !== undefined) vehicle.year = Number(year);
+    if (year) vehicle.year = Number(year);
     if (odometer !== undefined) vehicle.odometer = Number(odometer);
     if (fuelType) vehicle.fuelType = fuelType;
     if (status) vehicle.status = status;
+    if (lastService) vehicle.lastService = lastService;
+    if (nextService) vehicle.nextService = nextService;
 
-    const oldDriverId = vehicle.driverId;
-    const newDriverId = driverId !== undefined ? driverId.trim().toUpperCase() : oldDriverId;
+    if (driverId !== undefined) {
+      const oldDriverId = vehicle.driverId;
+      const newDriverId = driverId ? driverId.trim().toUpperCase() : "";
 
-    if (newDriverId !== oldDriverId) {
-      vehicle.driverId = newDriverId;
-
-      // Unassign old driver
-      if (oldDriverId) {
-        await Driver.findOneAndUpdate({ id: oldDriverId }, { vehicleId: "" });
-      }
-      // Assign new driver
-      if (newDriverId) {
-        const driver = await Driver.findOne({ id: newDriverId });
-        if (driver) {
-          if (driver.vehicleId && driver.vehicleId !== vehicleId) {
-            await Vehicle.findOneAndUpdate({ id: driver.vehicleId }, { driverId: "" });
-          }
-          driver.vehicleId = vehicleId;
-          await driver.save();
+      if (newDriverId && newDriverId !== oldDriverId) {
+        const driver = await Driver.findOne({ id: newDriverId, organizationId: orgId });
+        if (!driver) {
+          return errorResponse(res, `Driver '${newDriverId}' not found in your organization`, 404);
         }
+        if (driver.vehicleId && driver.vehicleId !== vehicleId) {
+          await Vehicle.findOneAndUpdate({ id: driver.vehicleId, organizationId: orgId }, { driverId: "", driverRef: null });
+        }
+        driver.vehicleId = vehicleId;
+        driver.vehicleRef = vehicle._id;
+        await driver.save();
+        vehicle.driverId = newDriverId;
+        vehicle.driverRef = driver._id;
+      } else if (!newDriverId && oldDriverId) {
+        await Driver.findOneAndUpdate({ id: oldDriverId, organizationId: orgId }, { vehicleId: "", vehicleRef: null });
+        vehicle.driverId = "";
+        vehicle.driverRef = null;
       }
     }
 
     await vehicle.save();
-
     return successResponse(res, vehicle, "Vehicle updated successfully");
   } catch (err) {
     next(err);
@@ -201,27 +287,22 @@ const updateVehicle = async (req, res, next) => {
  */
 const deleteVehicle = async (req, res, next) => {
   try {
+    const orgId = req.user.organizationId;
     const vehicleId = req.params.id.toUpperCase();
-    const vehicle = await Vehicle.findOneAndDelete({ id: vehicleId });
+    const vehicle = await Vehicle.findOne({ id: vehicleId, organizationId: orgId });
 
     if (!vehicle) {
       return errorResponse(res, "Vehicle not found", 404);
     }
 
-    // Unassign driver if any
+    // Unassign driver
     if (vehicle.driverId) {
-      await Driver.findOneAndUpdate({ id: vehicle.driverId }, { vehicleId: "" });
+      await Driver.findOneAndUpdate({ id: vehicle.driverId, organizationId: orgId }, { vehicleId: "", vehicleRef: null });
     }
 
-    // Log Activity
-    await Activity.create({
-      icon: "🗑️",
-      text: `Vehicle ${vehicleId} was removed from the fleet`,
-      time: "Just now",
-      status: "Warning"
-    });
+    await Vehicle.findOneAndDelete({ id: vehicleId, organizationId: orgId });
 
-    return successResponse(res, null, `Vehicle ${vehicleId} deleted successfully`);
+    return successResponse(res, null, "Vehicle deleted successfully");
   } catch (err) {
     next(err);
   }

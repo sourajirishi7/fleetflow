@@ -19,6 +19,9 @@ let driverFilter = "all";
 let userRoleFilter = "all";
 let userStatusFilter = "all";
 let modalMode = "";
+let routeMap = null;
+let routeLayerGroup = null;
+let selectedTripId = null;
 
 const pageCopy = {
   dashboard: ["Fleet Command Center", "Monitor your fleet, drivers, routes and maintenance in real time."],
@@ -54,11 +57,13 @@ async function checkAuthAndInit() {
     currentUser = data.data;
     updateUserChip(currentUser);
 
-    // Apply role-based styling
+    // Apply role-based styling and navigation labels
     if (currentUser.role === "EMPLOYEE") {
       document.body.classList.add("role-employee");
+      applyEmployeeNavLabels();
     } else {
       document.body.classList.remove("role-employee");
+      applyAdminNavLabels();
     }
 
     bindEvents();
@@ -68,6 +73,46 @@ async function checkAuthAndInit() {
     console.error("Auth check failed:", err);
     window.location.replace("/login.html");
   }
+}
+
+function applyEmployeeNavLabels() {
+  const lblDash = document.getElementById("nav-label-dashboard");
+  if (lblDash) lblDash.textContent = "My Dashboard";
+  const lblVeh = document.getElementById("nav-label-vehicles");
+  if (lblVeh) lblVeh.textContent = "My Vehicle";
+  const lblFuel = document.getElementById("nav-label-fuel");
+  if (lblFuel) lblFuel.textContent = "My Fuel";
+  const lblMaint = document.getElementById("nav-label-maintenance");
+  if (lblMaint) lblMaint.textContent = "My Maintenance";
+  const lblRoutes = document.getElementById("nav-label-routes");
+  if (lblRoutes) lblRoutes.textContent = "My Trips";
+
+  pageCopy.dashboard = ["My Operations Dashboard", "Overview of your assigned vehicle, active trips, and fuel logging."];
+  pageCopy.vehicles = ["My Assigned Vehicle", "Detailed specifications and status for your assigned vehicle."];
+  pageCopy.fuel = ["My Fuel Logs", "Log fuel purchases and track consumption for your assigned vehicle."];
+  pageCopy.maintenance = ["My Vehicle Service", "View maintenance tickets and schedule service for your vehicle."];
+  pageCopy.routes = ["My Assigned Trips", "Review your upcoming routes and completed assignments."];
+}
+
+function applyAdminNavLabels() {
+  const lblDash = document.getElementById("nav-label-dashboard");
+  if (lblDash) lblDash.textContent = "Dashboard";
+  const lblVeh = document.getElementById("nav-label-vehicles");
+  if (lblVeh) lblVeh.textContent = "Vehicles";
+  const lblFuel = document.getElementById("nav-label-fuel");
+  if (lblFuel) lblFuel.textContent = "Fuel";
+  const lblMaint = document.getElementById("nav-label-maintenance");
+  if (lblMaint) lblMaint.textContent = "Maintenance";
+  const lblRoutes = document.getElementById("nav-label-routes");
+  if (lblRoutes) lblRoutes.textContent = "Routes";
+
+  pageCopy.dashboard = ["Fleet Command Center", "Monitor your fleet, drivers, routes and maintenance in real time."];
+  pageCopy.vehicles = ["Vehicle Records", "Search, filter and manage every unit in the fleet."];
+  pageCopy.drivers = ["Driver Assignments", "Track licenses, safety scores and vehicle assignments."];
+  pageCopy.fuel = ["Fuel & Cost Control", "Record fill-ups, costs and kilometre efficiency."];
+  pageCopy.maintenance = ["Maintenance Schedules", "Keep overdue, upcoming and completed work in view."];
+  pageCopy.routes = ["Route History", "Review completed trips and live corridor tracking."];
+  pageCopy.users = ["User Management", "Create employee accounts, manage roles and account access."];
 }
 
 function updateUserChip(user) {
@@ -95,7 +140,6 @@ async function loadAllFromBackend() {
   try {
     const promises = [
       fetch("/api/vehicles", { credentials: "include" }).then(function (r) { return r.json(); }),
-      fetch("/api/drivers", { credentials: "include" }).then(function (r) { return r.json(); }),
       fetch("/api/trips", { credentials: "include" }).then(function (r) { return r.json(); }),
       fetch("/api/fuel", { credentials: "include" }).then(function (r) { return r.json(); }),
       fetch("/api/fuel/weekly-summary", { credentials: "include" }).then(function (r) { return r.json(); }),
@@ -105,22 +149,30 @@ async function loadAllFromBackend() {
     ];
 
     if (currentUser && currentUser.role === "ADMIN") {
+      promises.push(fetch("/api/drivers", { credentials: "include" }).then(function (r) { return r.json(); }));
       promises.push(fetch("/api/users", { credentials: "include" }).then(function (r) { return r.json(); }));
+    } else {
+      // Employees fetch only their own profile if linked to a driver
+      promises.push(fetch("/api/drivers/me", { credentials: "include" }).then(function (r) { return r.json(); }));
     }
 
     const results = await Promise.all(promises);
 
     vehicles = (results[0].data) || [];
-    drivers = (results[1].data) || [];
-    routes = (results[2].data) || [];
-    fuelEntries = (results[3].data) || [];
-    weeklyFuel = (results[4].data) || [];
-    maintenance = (results[5].data) || [];
-    dashboardStats = (results[6].data) || null;
-    activities = (results[7].data) || [];
+    routes = (results[1].data) || [];
+    fuelEntries = (results[2].data) || [];
+    weeklyFuel = (results[3].data) || [];
+    maintenance = (results[4].data) || [];
+    dashboardStats = (results[5].data) || null;
+    activities = (results[6].data) || [];
 
-    if (results[8] && results[8].data) {
-      users = results[8].data;
+    if (currentUser && currentUser.role === "ADMIN") {
+      drivers = (results[7] && results[7].data) || [];
+      users = (results[8] && results[8].data) || [];
+    } else {
+      const myDriver = results[7] && results[7].data;
+      drivers = myDriver ? [myDriver] : [];
+      users = [];
     }
 
     renderAll();
@@ -133,7 +185,9 @@ async function loadAllFromBackend() {
 function renderAll() {
   renderDashboard();
   renderVehicles();
-  renderDrivers();
+  if (currentUser && currentUser.role === "ADMIN") {
+    renderDrivers();
+  }
   renderFuelFilters();
   renderFuel();
   renderMaintenance();
@@ -287,6 +341,17 @@ function bindEvents() {
     globalSearch.addEventListener("focus", runGlobalSearch);
   }
 
+  const mapRetryBtn = document.getElementById("map-retry-btn");
+  if (mapRetryBtn) {
+    mapRetryBtn.addEventListener("click", function () {
+      if (selectedTripId) selectTripRoute(selectedTripId);
+    });
+  }
+
+  window.addEventListener("resize", function () {
+    if (routeMap) routeMap.invalidateSize();
+  });
+
   renderNotifications();
 }
 
@@ -303,10 +368,15 @@ async function handleLogout() {
 }
 
 function renderNotifications() {
+  const isEmployee = currentUser && currentUser.role === "EMPLOYEE";
   const overdueCount = maintenance.filter(function (m) { return m.status === "Overdue"; }).length;
   const offlineCount = vehicles.filter(function (v) { return v.status === "Offline"; }).length;
 
-  const notifs = [
+  const notifs = isEmployee ? [
+    { title: overdueCount ? (overdueCount + " service alert(s) for your vehicle") : "Your vehicle service is up to date", detail: overdueCount ? "Scheduled maintenance pending" : "No pending alerts", section: "maintenance" },
+    { title: vehicles.length ? (vehicles[0].id + " status: " + vehicles[0].status) : "No vehicle currently assigned", detail: "Assigned vehicle status", section: "vehicles" },
+    { title: "FleetFlow System Connected", detail: "Personal operational sync active", section: "dashboard" }
+  ] : [
     { title: overdueCount ? (overdueCount + " maintenance services are overdue") : "All maintenance up to date", detail: overdueCount ? "Requires immediate inspection" : "No pending service alerts", section: "maintenance" },
     { title: offlineCount ? (offlineCount + " vehicles offline") : "Full fleet operational", detail: offlineCount ? "Checked into workshop" : "Zero vehicles stranded", section: "vehicles" },
     { title: "MongoDB Atlas Connected", detail: "Real-time bidirectional synchronization active", section: "dashboard" }
@@ -329,7 +399,7 @@ function renderNotifications() {
 
   const countBadge = document.getElementById("notify-count");
   if (countBadge) {
-    countBadge.textContent = String(overdueCount + offlineCount);
+    countBadge.textContent = String(overdueCount + (isEmployee ? 0 : offlineCount));
   }
 }
 
@@ -338,6 +408,11 @@ function renderNotifications() {
 // ================================
 
 function showSection(name) {
+  if (currentUser && currentUser.role === "EMPLOYEE" && (name === "drivers" || name === "users")) {
+    showToast("Access denied: Administrative privileges required.", "error");
+    name = "dashboard";
+  }
+
   currentSection = name;
   document.querySelectorAll(".page").forEach(function (page) {
     const match = page.id === "page-" + name;
@@ -360,6 +435,12 @@ function showSection(name) {
   const subEl = document.getElementById("page-subtitle");
   if (titleEl) titleEl.textContent = copy[0];
   if (subEl) subEl.textContent = copy[1];
+
+  if (name === "routes") {
+    setTimeout(function () {
+      initOrUpdateRouteMap();
+    }, 120);
+  }
 }
 
 function toggleSidebar() {
@@ -368,6 +449,9 @@ function toggleSidebar() {
   sidebar.classList.toggle("is-open", open);
   const backdrop = document.getElementById("sidebar-backdrop");
   if (backdrop) backdrop.hidden = !open;
+  if (routeMap) {
+    setTimeout(function () { routeMap.invalidateSize(); }, 250);
+  }
 }
 
 function closeSidebar() {
@@ -375,6 +459,9 @@ function closeSidebar() {
   if (sidebar) sidebar.classList.remove("is-open");
   const backdrop = document.getElementById("sidebar-backdrop");
   if (backdrop) backdrop.hidden = true;
+  if (routeMap) {
+    setTimeout(function () { routeMap.invalidateSize(); }, 250);
+  }
 }
 
 function togglePanel(panelId, btnId) {
@@ -472,6 +559,7 @@ function escapeHtml(text) {
 // ================================
 
 function renderDashboard() {
+  const isEmployee = currentUser && currentUser.role === "EMPLOYEE";
   const activeCount = dashboardStats ? dashboardStats.activeVehicles : vehicles.filter(function (v) { return v.status === "Active"; }).length;
   const totalVehiclesCount = dashboardStats ? dashboardStats.totalVehicles : vehicles.length;
   const overdueCount = dashboardStats ? dashboardStats.overdueMaintenance : maintenance.filter(function (m) { return m.status === "Overdue"; }).length;
@@ -479,11 +567,19 @@ function renderDashboard() {
 
   const kpiEl = document.getElementById("kpi-grid");
   if (kpiEl) {
-    kpiEl.innerHTML =
-      kpiCard("blue", "🚚", totalVehiclesCount, "Vehicles", "Total Fleet", "up", "+1 vs last month") +
-      kpiCard("green", "🛣️", activeCount, "Currently active", "Active on Route", "up", "On-time operations") +
-      kpiCard("red", "🔧", overdueCount, "Overdue", "Maintenance Alerts", overdueCount ? "warn" : "up", overdueCount ? "Needs attention" : "All clear") +
-      kpiCard("indigo", "⛽", formatMoney(spend), "This month", "Fuel Spend", "down", "MongoDB Real-Time");
+    if (isEmployee) {
+      kpiEl.innerHTML =
+        kpiCard("blue", "🚚", totalVehiclesCount, "Assigned to you", "My Vehicle", "up", "Assigned Unit") +
+        kpiCard("green", "🛣️", activeCount, "Assigned active trips", "My Active Trips", "up", "On schedule") +
+        kpiCard("red", "🔧", overdueCount, "Maintenance alerts", "Service Alerts", overdueCount ? "warn" : "up", overdueCount ? "Needs attention" : "All clear") +
+        kpiCard("indigo", "⛽", formatMoney(spend), "Your recorded fill-ups", "My Fuel Cost", "down", "Logged entries");
+    } else {
+      kpiEl.innerHTML =
+        kpiCard("blue", "🚚", totalVehiclesCount, "Vehicles", "Total Fleet", "up", "+1 vs last month") +
+        kpiCard("green", "🛣️", activeCount, "Currently active", "Active on Route", "up", "On-time operations") +
+        kpiCard("red", "🔧", overdueCount, "Overdue", "Maintenance Alerts", overdueCount ? "warn" : "up", overdueCount ? "Needs attention" : "All clear") +
+        kpiCard("indigo", "⛽", formatMoney(spend), "This month", "Fuel Spend", "down", "MongoDB Real-Time");
+    }
   }
 
   renderFuelChart();
@@ -612,6 +708,12 @@ function emptyRow(cols, text) {
 // ================================
 
 function renderDrivers() {
+  if (currentUser && currentUser.role !== "ADMIN") {
+    const tbody = document.getElementById("driver-table-body");
+    if (tbody) tbody.innerHTML = emptyRow(7, "Access restricted to Fleet Administrators.");
+    return;
+  }
+
   const q = (document.getElementById("driver-search").value || "").toLowerCase();
   const rows = drivers.filter(function (d) {
     const hay = (d.name + " " + d.license + " " + d.phone).toLowerCase();
@@ -788,9 +890,15 @@ function renderRoutes() {
   const tbody = document.getElementById("route-table-body");
   if (!tbody) return;
 
+  if (!selectedTripId && routes.length > 0) {
+    selectedTripId = routes[0].id;
+  }
+
   tbody.innerHTML = routes.map(function (r) {
     const vehicle = getVehicleById(r.vehicleId);
     const driver = vehicle ? getDriverName(vehicle.driverId) : "—";
+    const isSelected = (selectedTripId === r.id);
+    const selClass = isSelected ? " is-selected" : "";
 
     // Status action: Employees and Admins can update status
     const statusSelect = '<select class="route-status-select" data-trip-id="' + r.id + '" style="padding: 2px 6px; font-size: 0.8rem; border-radius: 6px;">' +
@@ -798,11 +906,24 @@ function renderRoutes() {
         return '<option value="' + s + '"' + (r.status === s ? ' selected' : '') + '>' + s + '</option>';
       }).join("") + '</select>';
 
-    return "<tr><td><strong>" + escapeHtml(r.id) + "</strong></td><td>" + escapeHtml(r.vehicleId) +
-      "</td><td>" + escapeHtml(driver) + "</td><td>" + escapeHtml(r.start) +
-      "</td><td>" + escapeHtml(r.end) + "</td><td>" + r.distance + " km</td><td>" +
-      escapeHtml(r.duration) + "</td><td>" + statusBadge(r.status) + " " + statusSelect + "</td></tr>";
-  }).join("") || emptyRow(8, "No active routes found for current assignment.");
+    const actionBtn = '<button type="button" class="link-btn view-route-btn" data-route-id="' + r.id + '">View Route</button>';
+
+    return '<tr class="row-click' + selClass + '" data-route-id="' + r.id + '"><td><strong>' + escapeHtml(r.id) + '</strong></td><td>' + escapeHtml(r.vehicleId) +
+      '</td><td>' + escapeHtml(driver) + '</td><td>' + escapeHtml(r.start) +
+      '</td><td>' + escapeHtml(r.end) + '</td><td>' + r.distance + ' km</td><td>' +
+      escapeHtml(r.duration) + '</td><td>' + statusBadge(r.status) + ' ' + statusSelect + '</td>' +
+      '<td>' + actionBtn + '</td></tr>';
+  }).join("") || emptyRow(9, "No active routes found for current assignment.");
+
+  tbody.onclick = function (event) {
+    if (event.target.classList.contains("route-status-select")) return;
+
+    const row = event.target.closest("[data-route-id]");
+    if (row) {
+      const tripId = row.getAttribute("data-route-id");
+      selectTripRoute(tripId);
+    }
+  };
 
   tbody.onchange = async function (event) {
     if (event.target.classList.contains("route-status-select")) {
@@ -811,6 +932,171 @@ function renderRoutes() {
       await updateTripStatus(tripId, newStatus);
     }
   };
+
+  if (currentSection === "routes") {
+    initOrUpdateRouteMap();
+  }
+}
+
+// ================================
+// INTERACTIVE ROUTE MAP (LEAFLET & OSRM)
+// ================================
+
+// GPS Integration Point Hook (For future telematics feed)
+const vehicleGpsFeed = null;
+
+function initOrUpdateRouteMap() {
+  if (typeof L === "undefined") {
+    setTimeout(initOrUpdateRouteMap, 150);
+    return;
+  }
+
+  const mapContainer = document.getElementById("route-map");
+  if (!mapContainer) return;
+
+  if (!routeMap) {
+    routeMap = L.map("route-map", {
+      zoomControl: true,
+      scrollWheelZoom: true,
+      attributionControl: true
+    }).setView([17.3850, 78.4867], 7);
+
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors | Road Routing: <a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a>'
+    }).addTo(routeMap);
+
+    routeLayerGroup = L.layerGroup().addTo(routeMap);
+  } else {
+    routeMap.invalidateSize();
+  }
+
+  if (selectedTripId) {
+    selectTripRoute(selectedTripId);
+  } else if (routes.length > 0) {
+    selectTripRoute(routes[0].id);
+  }
+}
+
+async function selectTripRoute(tripId) {
+  selectedTripId = tripId;
+
+  // Highlight selected table row
+  document.querySelectorAll("#route-table-body tr").forEach(function (row) {
+    row.classList.toggle("is-selected", row.getAttribute("data-route-id") === tripId);
+  });
+
+  const loadingEl = document.getElementById("map-loading");
+  const errorEl = document.getElementById("map-error");
+  const errTextEl = document.getElementById("map-error-text");
+  const metricsEl = document.getElementById("map-metrics");
+
+  if (loadingEl) loadingEl.hidden = false;
+  if (errorEl) errorEl.hidden = true;
+
+  try {
+    const res = await fetch("/api/trips/" + encodeURIComponent(tripId) + "/route", {
+      credentials: "include"
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.success || !data.data) {
+      throw new Error(data.message || "Failed to load road route data.");
+    }
+
+    const r = data.data;
+
+    if (!routeMap) {
+      initOrUpdateRouteMap();
+    }
+
+    if (routeLayerGroup) {
+      routeLayerGroup.clearLayers();
+    }
+
+    // Polyline following actual road geometry from OSRM
+    const polyline = L.polyline(r.coordinates, {
+      color: "#4f46e5",
+      weight: 5,
+      opacity: 0.88,
+      lineJoin: "round",
+      lineCap: "round"
+    }).addTo(routeLayerGroup);
+
+    if (!r.isRoadRoute) {
+      polyline.setStyle({ dashArray: "8, 8", color: "#6366f1" });
+    }
+
+    // Custom Origin Marker (A)
+    const originIcon = L.divIcon({
+      className: "custom-leaflet-pin",
+      html: '<div class="map-pin-custom pin-origin" title="Origin: ' + escapeHtml(r.origin.name) + '"><span>A</span></div>',
+      iconSize: [30, 30],
+      iconAnchor: [15, 30],
+      popupAnchor: [0, -28]
+    });
+    const originMarker = L.marker([r.origin.lat, r.origin.lng], { icon: originIcon }).addTo(routeLayerGroup);
+    originMarker.bindTooltip("Origin: " + escapeHtml(r.origin.name), { direction: "top" });
+
+    // Custom Destination Marker (B)
+    const destIcon = L.divIcon({
+      className: "custom-leaflet-pin",
+      html: '<div class="map-pin-custom pin-dest" title="Destination: ' + escapeHtml(r.destination.name) + '"><span>B</span></div>',
+      iconSize: [30, 30],
+      iconAnchor: [15, 30],
+      popupAnchor: [0, -28]
+    });
+    const destMarker = L.marker([r.destination.lat, r.destination.lng], { icon: destIcon }).addTo(routeLayerGroup);
+    destMarker.bindTooltip("Destination: " + escapeHtml(r.destination.name), { direction: "top" });
+
+    // Rich popup on route and markers
+    const popupHtml = '<div style="font-family: inherit; font-size: 0.85rem; line-height: 1.5; min-width: 210px;">' +
+      '<div style="font-weight: 700; color: #4f46e5; font-size: 0.95rem; margin-bottom: 4px;">Route ' + escapeHtml(r.tripId) + '</div>' +
+      '<div><strong>Highway Corridor:</strong> ' + escapeHtml(r.origin.name) + ' &rarr; ' + escapeHtml(r.destination.name) + '</div>' +
+      '<div><strong>Vehicle:</strong> ' + escapeHtml(r.vehicleId) + '</div>' +
+      '<div><strong>Road Distance:</strong> ' + r.distanceKm + ' km</div>' +
+      '<div><strong>Est. Travel Time:</strong> ' + escapeHtml(r.durationFormatted) + '</div>' +
+      '<div style="margin-top: 6px;">' + statusBadge(r.status) + '</div>' +
+      '</div>';
+
+    originMarker.bindPopup(popupHtml);
+    destMarker.bindPopup(popupHtml);
+    polyline.bindPopup(popupHtml);
+
+    // Fit map bounds to encompass the entire route
+    routeMap.fitBounds(polyline.getBounds(), {
+      padding: [40, 40],
+      maxZoom: 14
+    });
+
+    // Update map card labels and captions
+    const titleEl = document.getElementById("map-trip-title");
+    if (titleEl) titleEl.textContent = r.tripId + " · " + r.origin.name + " → " + r.destination.name;
+
+    const captionEl = document.getElementById("map-caption");
+    if (captionEl) {
+      captionEl.textContent = r.origin.name + " → " + r.destination.name + " highway corridor · Vehicle " + r.vehicleId + " · Planned Route";
+    }
+
+    const statusTextEl = document.getElementById("map-status-text");
+    if (statusTextEl) {
+      statusTextEl.textContent = r.isRoadRoute ? "Road Route Active (OSRM)" : "Direct Trajectory (Fallback)";
+    }
+
+    const distEl = document.getElementById("map-metric-distance");
+    if (distEl) distEl.textContent = r.distanceKm + " km";
+
+    const durEl = document.getElementById("map-metric-duration");
+    if (durEl) durEl.textContent = r.durationFormatted;
+
+    if (metricsEl) metricsEl.hidden = false;
+  } catch (err) {
+    console.error("Error loading route:", err);
+    if (errTextEl) errTextEl.textContent = err.message || "Failed to calculate road route.";
+    if (errorEl) errorEl.hidden = false;
+  } finally {
+    if (loadingEl) loadingEl.hidden = true;
+  }
 }
 
 async function updateTripStatus(tripId, newStatus) {
@@ -919,12 +1205,17 @@ function runGlobalSearch() {
       hits.push({ section: "vehicles", title: v.id + " — " + v.make + " " + v.model, meta: "Vehicle · " + v.plate });
     }
   });
-  drivers.forEach(function (d) {
-    const hay = (d.name + " " + d.license + " " + d.phone).toLowerCase();
-    if (hay.indexOf(q) !== -1) {
-      hits.push({ section: "drivers", title: d.name, meta: "Driver · " + d.license });
-    }
-  });
+
+  // Only Admins can search across driver directory
+  if (currentUser && currentUser.role === "ADMIN") {
+    drivers.forEach(function (d) {
+      const hay = (d.name + " " + d.license + " " + d.phone).toLowerCase();
+      if (hay.indexOf(q) !== -1) {
+        hits.push({ section: "drivers", title: d.name, meta: "Driver · " + d.license });
+      }
+    });
+  }
+
   routes.forEach(function (r) {
     const hay = (r.id + " " + r.start + " " + r.end).toLowerCase();
     if (hay.indexOf(q) !== -1) {
@@ -934,7 +1225,7 @@ function runGlobalSearch() {
 
   box.hidden = false;
   if (!hits.length) {
-    box.innerHTML = '<div class="search-empty">No matching records found in MongoDB.</div>';
+    box.innerHTML = '<div class="search-empty">No matching records found.</div>';
     return;
   }
   box.innerHTML = hits.slice(0, 10).map(function (h) {
@@ -956,6 +1247,13 @@ function runGlobalSearch() {
 // ================================
 
 function openModal(mode, id) {
+  if (currentUser && currentUser.role === "EMPLOYEE") {
+    if (mode === "add-vehicle" || mode === "add-driver" || mode === "add-user" || mode === "reassign") {
+      showToast("Access denied: Administrative privileges required.", "error");
+      return;
+    }
+  }
+
   modalMode = mode;
   const title = document.getElementById("modal-title");
   const body = document.getElementById("modal-body");
@@ -1081,6 +1379,12 @@ function driverFormHtml() {
       { value: "Off-Duty", label: "Off-Duty" }
     ])) +
     selectField("vehicleId", "Assigned Vehicle", vehicleOpts, false, false) +
+    '<div class="field full" style="margin-top: 6px;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="driver-create-login" name="createLogin" onchange="document.getElementById(\'driver-login-box\').hidden = !this.checked;"> <strong>Grant Employee Login Access</strong></label></div>' +
+    '<div id="driver-login-box" class="form-grid full" style="grid-column: 1 / -1; margin-top: 6px; padding: 12px; background: var(--bg); border: 1px dashed var(--line); border-radius: 8px;" hidden>' +
+      field("username", "Login Username", "text", { placeholder: "e.g. driver_ramesh" }) +
+      field("email", "Login Email", "email", { placeholder: "ramesh@fleetflow.local" }) +
+      '<div class="field full"><label for="password">Login Password (min 6 chars)</label><input type="password" id="password" name="password" placeholder="Create password for driver"></div>' +
+    '</div>' +
     formActions("Add Driver to Atlas") + "</form>";
 }
 
@@ -1302,13 +1606,26 @@ async function submitDriver(form) {
     return;
   }
 
+  const createLogin = form.elements.createLogin && form.elements.createLogin.checked;
+  if (createLogin) {
+    const pwd = form.elements.password ? form.elements.password.value : "";
+    if (!pwd || pwd.length < 6) {
+      showToast("Please enter a password with at least 6 characters for the login account", "error");
+      return;
+    }
+  }
+
   const payload = {
     name: form.elements.name.value.trim(),
     license: form.elements.license.value.trim(),
     phone: phone,
     safety: Number(form.elements.safety.value),
     status: form.elements.status.value,
-    vehicleId: form.elements.vehicleId.value
+    vehicleId: form.elements.vehicleId.value,
+    createLogin: Boolean(createLogin),
+    username: form.elements.username ? form.elements.username.value.trim() : "",
+    email: form.elements.email ? form.elements.email.value.trim() : "",
+    password: form.elements.password ? form.elements.password.value : ""
   };
 
   const res = await fetch("/api/drivers", {
@@ -1321,7 +1638,7 @@ async function submitDriver(form) {
   const data = await res.json();
   if (res.ok && data.success) {
     closeModal();
-    showToast("Driver " + payload.name + " saved to MongoDB Atlas!", "success");
+    showToast("Driver " + payload.name + " saved to MongoDB Atlas!" + (createLogin ? " (Employee account created)" : ""), "success");
     await loadAllFromBackend();
   } else {
     showToast(data.message || "Failed to create driver", "error");

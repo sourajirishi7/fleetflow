@@ -15,7 +15,8 @@ router.get("/weekly-summary", getWeeklyFuelSummary);
 
 router.route("/")
   .get(getFuelEntries)
-  .post(requireAdmin, createFuelEntry);
+  .post(createFuelEntry);
+
 
 router.route("/:id")
   .delete(requireAdmin, deleteFuelEntry);

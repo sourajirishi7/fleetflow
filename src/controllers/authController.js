@@ -1,6 +1,135 @@
 const User = require("../models/User");
-const { sendTokenResponse, clearTokenCookie } = require("../utils/jwt");
+const Organization = require("../models/Organization");
+const { sendTokenResponse, clearTokenCookie, verifyToken, COOKIE_NAME } = require("../utils/jwt");
 const { successResponse, errorResponse } = require("../utils/response");
+
+/**
+ * @desc    Register a new Organization and Administrator account
+ * @route   POST /api/auth/register-admin
+ * @access  Protected / Authorized Setup
+ */
+const registerAdmin = async (req, res, next) => {
+  let createdOrg = null;
+  try {
+    const organizationName = req.body.organizationName || req.body.orgName;
+    const name = req.body.name || req.body.adminFullName || req.body.fullName;
+    const username = req.body.username;
+    const email = req.body.email;
+    const password = req.body.password;
+
+    if (!organizationName || !name || !username || !email || !password) {
+      return errorResponse(res, "Organization name, full name, username, email, and password are required", 400);
+    }
+
+    if (password.length < 6) {
+      return errorResponse(res, "Password must be at least 6 characters long", 400);
+    }
+
+    // 1. Resolve caller session (cookie or Bearer token) if not already set on req.user
+    let caller = req.user;
+    if (!caller) {
+      const token = req.cookies?.[COOKIE_NAME] ||
+        (req.headers.authorization?.startsWith("Bearer ") ? req.headers.authorization.split(" ")[1] : null);
+      if (token) {
+        try {
+          const decoded = verifyToken(token);
+          caller = await User.findById(decoded.id);
+        } catch {}
+      }
+    }
+
+    // 2. Explicitly prevent employees from creating organizations or admins
+    if (caller && caller.role === "EMPLOYEE") {
+      return errorResponse(res, "Access denied. Employees cannot create organizations or administrator accounts.", 403);
+    }
+
+    // 3. Extract setup authorization key from headers or request body
+    const submittedKey =
+      req.headers["x-setup-key"] ||
+      req.headers["x-initial-setup-key"] ||
+      req.body.setupKey ||
+      req.body.setupSecret;
+
+    // Load server-side secret key from INITIAL_SETUP_KEY
+    const configuredKey = process.env.INITIAL_SETUP_KEY || process.env.ADMIN_SETUP_SECRET;
+    const hasValidKey = Boolean(
+      configuredKey &&
+      submittedKey &&
+      typeof submittedKey === "string" &&
+      submittedKey.trim() === configuredKey.trim()
+    );
+
+    const isCallerAdmin = caller && caller.role === "ADMIN";
+    const totalAdmins = await User.countDocuments({ role: "ADMIN" });
+
+    // 4. Authorization check:
+    // Only an authenticated ADMIN or a caller providing the valid server-side INITIAL_SETUP_KEY may register
+    if (!isCallerAdmin && !hasValidKey) {
+      if (totalAdmins > 0) {
+        return errorResponse(
+          res,
+          "Public organization registration is disabled. Creating an organization requires an authorized administrator session or a valid setup key.",
+          403
+        );
+      } else {
+        return errorResponse(
+          res,
+          "Initial system setup required. Please use the server-side administrator setup process or provide a valid INITIAL_SETUP_KEY.",
+          403
+        );
+      }
+    }
+
+    // Check duplicate username or email
+    const trimmedUsername = username.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+
+    const existingUser = await User.findOne({
+      $or: [{ username: trimmedUsername }, { email: trimmedEmail }]
+    });
+
+    if (existingUser) {
+      const field = existingUser.username === trimmedUsername ? "Username" : "Email";
+      return errorResponse(res, `${field} is already taken`, 409);
+    }
+
+    // Step 1: Create Organization document
+    createdOrg = await Organization.create({
+      name: organizationName.trim(),
+      code: organizationName.trim().slice(0, 6).toUpperCase().replace(/\s+/g, "")
+    });
+
+    // Step 2: Create Admin User document
+    const newAdmin = await User.create({
+      organizationId: createdOrg._id,
+      fullName: name.trim(),
+      name: name.trim(),
+      username: trimmedUsername,
+      email: trimmedEmail,
+      password,
+      role: "ADMIN",
+      isActive: true,
+      status: "Active"
+    });
+
+    // Step 3: Link creator back to Organization
+    createdOrg.createdBy = newAdmin._id;
+    await createdOrg.save();
+
+    return sendTokenResponse(
+      res,
+      newAdmin,
+      201,
+      `Organization '${createdOrg.name}' and Administrator '${newAdmin.username}' created successfully`
+    );
+  } catch (err) {
+    // Compensation rollback if user creation failed after org creation
+    if (createdOrg && createdOrg._id) {
+      await Organization.findByIdAndDelete(createdOrg._id).catch(() => {});
+    }
+    next(err);
+  }
+};
 
 /**
  * @desc    Login user & issue JWT cookie
@@ -30,7 +159,7 @@ const login = async (req, res, next) => {
     }
 
     // Check account status
-    if (user.status !== "Active") {
+    if (!user.isActive || user.status === "Inactive") {
       return errorResponse(res, "This account is deactivated. Please contact an administrator.", 403);
     }
 
@@ -57,12 +186,25 @@ const logout = async (req, res) => {
 };
 
 /**
- * @desc    Get current authenticated user info
+ * @desc    Get current authenticated user info with organization context
  * @route   GET /api/auth/me
  * @access  Private
  */
-const getMe = async (req, res) => {
-  return successResponse(res, req.user, "Current user retrieved");
+const getMe = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id).populate("organizationId", "name code");
+    const userObj = user.toJSON();
+    if (user.organizationId) {
+      userObj.organization = {
+        id: user.organizationId._id,
+        name: user.organizationId.name,
+        code: user.organizationId.code
+      };
+    }
+    return successResponse(res, userObj, "Current user retrieved");
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
@@ -79,7 +221,10 @@ const updateProfile = async (req, res, next) => {
       return errorResponse(res, "User not found", 404);
     }
 
-    if (name) user.name = name.trim();
+    if (name) {
+      user.name = name.trim();
+      user.fullName = name.trim();
+    }
     if (phone !== undefined) user.phone = phone.trim();
 
     if (newPassword) {
@@ -105,6 +250,7 @@ const updateProfile = async (req, res, next) => {
 };
 
 module.exports = {
+  registerAdmin,
   login,
   logout,
   getMe,

@@ -2,12 +2,13 @@ const FuelEntry = require("../models/FuelEntry");
 const Vehicle = require("../models/Vehicle");
 const Activity = require("../models/Activity");
 const { successResponse, errorResponse } = require("../utils/response");
+const { getEmployeeAccessContext } = require("../utils/rbac");
 
 /**
- * Generate next Fuel Entry ID (e.g., F12)
+ * Generate next Fuel Entry ID within organization (e.g., F12)
  */
-const getNextFuelId = async () => {
-  const entries = await FuelEntry.find({}, "id");
+const getNextFuelId = async (organizationId) => {
+  const entries = await FuelEntry.find({ organizationId }, "id");
   const nums = entries.map((e) => {
     const raw = String(e.id).replace(/\D/g, "");
     return Number(raw) || 0;
@@ -17,30 +18,64 @@ const getNextFuelId = async () => {
 };
 
 /**
- * @desc    Get all fuel entries with filters
+ * @desc    Get fuel entries (Admin: all org fuel, Employee: assigned vehicle only)
  * @route   GET /api/fuel
  * @access  Private
  */
 const getFuelEntries = async (req, res, next) => {
   try {
+    const orgId = req.user.organizationId;
     const { vehicleId, date, search } = req.query;
-    let query = {};
+    let query = { organizationId: orgId };
+
+    // Role-based access restriction
+    if (req.user.role === "EMPLOYEE") {
+      const { assignedVehicleIds } = await getEmployeeAccessContext(req.user);
+      if (!assignedVehicleIds || assignedVehicleIds.length === 0) {
+        return successResponse(res, [], "No fuel records for assigned vehicle");
+      }
+      query.vehicleId = { $in: assignedVehicleIds };
+    }
 
     if (vehicleId && vehicleId !== "all") {
-      query.vehicleId = vehicleId;
+      const targetVId = vehicleId.trim().toUpperCase();
+      if (req.user.role === "EMPLOYEE") {
+        const { assignedVehicleIds } = await getEmployeeAccessContext(req.user);
+        if (!assignedVehicleIds.includes(targetVId)) {
+          return errorResponse(res, "Access denied to fuel records for this vehicle", 403);
+        }
+      }
+      query.vehicleId = targetVId;
     }
 
     if (date) {
-      query.date = date;
+      query.$or = [{ date }, { fuelDate: date }];
     }
 
     if (search) {
       const regex = new RegExp(search.trim(), "i");
-      query.$or = [
+      const searchConditions = [
         { vehicleId: regex },
         { date: regex },
+        { fuelDate: regex },
         { id: regex }
       ];
+
+      if (query.vehicleId) {
+        query.$and = [
+          { organizationId: orgId },
+          { vehicleId: query.vehicleId },
+          { $or: searchConditions }
+        ];
+        delete query.vehicleId;
+        delete query.organizationId;
+      } else {
+        query.$and = [
+          { organizationId: orgId },
+          { $or: searchConditions }
+        ];
+        delete query.organizationId;
+      }
     }
 
     const entries = await FuelEntry.find(query).sort({ date: -1, createdAt: -1 });
@@ -51,119 +86,149 @@ const getFuelEntries = async (req, res, next) => {
 };
 
 /**
- * @desc    Create new fuel entry
+ * @desc    Create new fuel entry (Admin: any in org, Employee: assigned vehicle only)
  * @route   POST /api/fuel
- * @access  Private (Admin only)
+ * @access  Private
  */
 const createFuelEntry = async (req, res, next) => {
   try {
-    let { id, vehicleId, date, liters, cost, odometer } = req.body;
+    const orgId = req.user.organizationId;
+    let { id, vehicleId, date, fuelDate, liters, quantityLitres, cost, totalCost, pricePerLitre, odometer, odometerKm, notes } = req.body;
 
-    if (!vehicleId || !date || liters === undefined || cost === undefined || odometer === undefined) {
-      return errorResponse(res, "Vehicle, date, liters, cost, and odometer are required", 400);
+    const effectiveDate = date || fuelDate;
+    const effectiveLiters = liters !== undefined ? liters : quantityLitres;
+    let effectiveCost = cost !== undefined ? cost : totalCost;
+    const effectiveOdo = odometer !== undefined ? odometer : odometerKm;
+
+    if (!vehicleId || !effectiveDate || effectiveLiters === undefined || effectiveOdo === undefined) {
+      return errorResponse(res, "Vehicle, date, liters, and odometer reading are required", 400);
     }
 
     const vId = vehicleId.trim().toUpperCase();
-    const vehicle = await Vehicle.findOne({ id: vId });
-    if (!vehicle) {
-      return errorResponse(res, `Vehicle '${vId}' not found`, 404);
+
+    // Verify employee authorization to log fuel for this vehicle
+    if (req.user.role === "EMPLOYEE") {
+      const { assignedVehicleIds } = await getEmployeeAccessContext(req.user);
+      if (!assignedVehicleIds || !assignedVehicleIds.includes(vId)) {
+        return errorResponse(res, "You are only authorized to log fuel for your assigned vehicle", 403);
+      }
     }
 
-    const numOdo = Number(odometer);
-    if (vehicle.odometer && numOdo < vehicle.odometer) {
+    // Verify vehicle belongs to organization
+    const vehicle = await Vehicle.findOne({ id: vId, organizationId: orgId });
+    if (!vehicle) {
+      return errorResponse(res, `Vehicle '${vId}' not found in your organization`, 404);
+    }
+
+    // Validate odometer reading against vehicle's current odometer
+    const odoNum = Number(effectiveOdo);
+    if (odoNum < vehicle.odometer) {
       return errorResponse(
         res,
-        `Odometer reading (${numOdo}) cannot be lower than the current reading (${vehicle.odometer} km)`,
+        `Odometer reading (${odoNum} km) cannot be less than the current vehicle odometer (${vehicle.odometer} km)`,
         400
       );
     }
 
+    // Validate/calculate totalCost on server
+    const litNum = Number(effectiveLiters);
+    if (litNum <= 0) {
+      return errorResponse(res, "Fuel quantity in liters must be greater than zero", 400);
+    }
+
+    if (pricePerLitre && (!effectiveCost || Number(effectiveCost) === 0)) {
+      effectiveCost = parseFloat((litNum * Number(pricePerLitre)).toFixed(2));
+    } else if (effectiveCost === undefined) {
+      return errorResponse(res, "Fuel cost is required", 400);
+    }
+
     if (!id) {
-      id = await getNextFuelId();
+      id = await getNextFuelId(orgId);
     } else {
       id = id.trim().toUpperCase();
     }
 
-    const newEntry = await FuelEntry.create({
-      id,
-      vehicleId: vId,
-      date,
-      liters: Number(liters),
-      cost: Number(cost),
-      odometer: numOdo
-    });
-
-    // Update vehicle's current odometer reading
-    if (numOdo > vehicle.odometer) {
-      vehicle.odometer = numOdo;
-      await vehicle.save();
+    // Check duplicate ID in organization
+    const existing = await FuelEntry.findOne({ id, organizationId: orgId });
+    if (existing) {
+      return errorResponse(res, `Fuel entry ID '${id}' already exists in your organization`, 409);
     }
 
-    // Log activity
+    const newEntry = await FuelEntry.create({
+      organizationId: orgId,
+      id,
+      vehicleId: vId,
+      vehicleRef: vehicle._id,
+      submittedBy: req.user._id,
+      date: effectiveDate,
+      fuelDate: effectiveDate,
+      liters: litNum,
+      quantityLitres: litNum,
+      pricePerLitre: pricePerLitre ? Number(pricePerLitre) : null,
+      cost: Number(effectiveCost),
+      totalCost: Number(effectiveCost),
+      odometer: odoNum,
+      odometerKm: odoNum,
+      notes: notes ? notes.trim() : ""
+    });
+
+    // Update vehicle's odometer reading
+    vehicle.odometer = odoNum;
+    await vehicle.save();
+
+    // Log Activity
     await Activity.create({
+      organizationId: orgId,
       icon: "⛽",
-      text: `Fuel entry added for ${vId} (${liters} L, ₹${cost})`,
+      text: `Fuel logged for ${vId}: ${litNum}L (₹${Number(effectiveCost).toLocaleString()})`,
       time: "Just now",
       status: "Info"
     });
 
-    return successResponse(res, newEntry, "Fuel entry added successfully", 201);
+    return successResponse(res, newEntry, "Fuel entry created successfully", 201);
   } catch (err) {
     next(err);
   }
 };
 
 /**
- * @desc    Get fuel summary for the last 7 days
+ * @desc    Get 7-day fuel consumption and cost trends within organization
  * @route   GET /api/fuel/weekly-summary
  * @access  Private
  */
-const getWeeklyFuelSummary = async (req, res, next) => {
+const getWeeklySummary = async (req, res, next) => {
   try {
-    // Generate dates for the last 7 days
+    const orgId = req.user.organizationId;
+    let vehicleFilter = { organizationId: orgId };
+
+    if (req.user.role === "EMPLOYEE") {
+      const { assignedVehicleIds } = await getEmployeeAccessContext(req.user);
+      vehicleFilter.vehicleId = { $in: assignedVehicleIds || [] };
+    }
+
+    const entries = await FuelEntry.find(vehicleFilter).sort({ date: -1 }).limit(30);
+
+    const dayTotals = {};
     const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const last7Days = [];
-    const today = new Date();
 
     for (let i = 6; i >= 0; i--) {
-      const d = new Date(today);
+      const d = new Date();
       d.setDate(d.getDate() - i);
       const dateStr = d.toISOString().split("T")[0];
       const dayName = days[d.getDay()];
-      last7Days.push({ date: dateStr, day: dayName, liters: 0 });
+      dayTotals[dateStr] = { day: dayName, date: dateStr, liters: 0, cost: 0 };
     }
 
-    // Aggregate from fuel entries
-    const startDate = last7Days[0].date;
-    const entries = await FuelEntry.find({ date: { $gte: startDate } });
-
-    entries.forEach((entry) => {
-      const match = last7Days.find((d) => d.date === entry.date);
-      if (match) {
-        match.liters += entry.liters;
+    entries.forEach((e) => {
+      const entryDate = e.date || e.fuelDate;
+      if (dayTotals[entryDate]) {
+        dayTotals[entryDate].liters += e.liters || e.quantityLitres || 0;
+        dayTotals[entryDate].cost += e.cost || e.totalCost || 0;
       }
     });
 
-    // If database is new or has no recent entries in current week, supply sensible defaults or calculated entries
-    const hasData = last7Days.some((d) => d.liters > 0);
-    let result = last7Days.map((d) => ({ day: d.day, liters: Math.round(d.liters) }));
-
-    if (!hasData) {
-      // Look at any existing entries
-      const allEntries = await FuelEntry.find().limit(20);
-      if (allEntries.length > 0) {
-        // Group by day name
-        const dayMap = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
-        allEntries.forEach((e) => {
-          const d = new Date(e.date);
-          const name = days[d.getDay()];
-          if (dayMap[name] !== undefined) dayMap[name] += e.liters;
-        });
-        result = Object.keys(dayMap).map((name) => ({ day: name, liters: Math.round(dayMap[name]) }));
-      }
-    }
-
-    return successResponse(res, result, "Weekly fuel summary retrieved");
+    const summary = Object.values(dayTotals);
+    return successResponse(res, summary, "Weekly summary retrieved");
   } catch (err) {
     next(err);
   }
@@ -176,14 +241,16 @@ const getWeeklyFuelSummary = async (req, res, next) => {
  */
 const deleteFuelEntry = async (req, res, next) => {
   try {
+    const orgId = req.user.organizationId;
     const entryId = req.params.id.toUpperCase();
-    const entry = await FuelEntry.findOneAndDelete({ id: entryId });
+    const entry = await FuelEntry.findOne({ id: entryId, organizationId: orgId });
 
     if (!entry) {
       return errorResponse(res, "Fuel entry not found", 404);
     }
 
-    return successResponse(res, null, `Fuel entry ${entryId} deleted successfully`);
+    await FuelEntry.findOneAndDelete({ id: entryId, organizationId: orgId });
+    return successResponse(res, null, "Fuel entry deleted successfully");
   } catch (err) {
     next(err);
   }
@@ -192,6 +259,7 @@ const deleteFuelEntry = async (req, res, next) => {
 module.exports = {
   getFuelEntries,
   createFuelEntry,
-  getWeeklyFuelSummary,
+  getWeeklySummary,
+  getWeeklyFuelSummary: getWeeklySummary,
   deleteFuelEntry
 };

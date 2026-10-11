@@ -2,6 +2,12 @@ const mongoose = require("mongoose");
 
 const activitySchema = new mongoose.Schema(
   {
+    organizationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
+      required: [true, "Organization ID is required"],
+      index: true
+    },
     icon: {
       type: String,
       default: "🚚"

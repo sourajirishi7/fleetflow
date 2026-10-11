@@ -65,9 +65,12 @@ const requireRole = (...roles) => {
 };
 
 const requireAdmin = requireRole("ADMIN");
+const requireEmployee = requireRole("EMPLOYEE");
 
 module.exports = {
   requireAuth,
   requireRole,
-  requireAdmin
+  requireAdmin,
+  requireEmployee
 };
+
