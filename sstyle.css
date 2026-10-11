@@ -1161,3 +1161,12 @@ tbody tr:hover {
     margin-left: 0;
   }
 }
+
+[hidden] {
+  display: none !important;
+}
+
+body.role-employee .admin-only {
+  display: none !important;
+}
+

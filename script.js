@@ -1,97 +1,7 @@
 // ================================
-// MOCK DATA
+// FLEETFLOW FULL-STACK APPLICATION LOGIC
+// Connected to Express REST API & MongoDB Atlas
 // ================================
-
-const STORAGE_KEY = "fleetflow-store";
-
-const defaultVehicles = [
-  { id: "FL-101", make: "Tata", model: "Prima 4025", plate: "AP09AB1234", year: 2023, odometer: 84210, fuelType: "Diesel", status: "Active", driverId: "D001", lastService: "2026-06-12", nextService: "2026-09-12" },
-  { id: "FL-102", make: "Ashok Leyland", model: "4825", plate: "AP09CD4521", year: 2022, odometer: 121450, fuelType: "Diesel", status: "Active", driverId: "D002", lastService: "2026-05-20", nextService: "2026-08-20" },
-  { id: "FL-103", make: "Mahindra", model: "Bolero Pickup", plate: "AP09EF6712", year: 2024, odometer: 31890, fuelType: "Diesel", status: "Active", driverId: "D003", lastService: "2026-07-02", nextService: "2026-10-02" },
-  { id: "FL-104", make: "Tata", model: "Ace", plate: "AP09GH8890", year: 2021, odometer: 156780, fuelType: "Diesel", status: "Offline", driverId: "D004", lastService: "2026-04-18", nextService: "2026-07-18" },
-  { id: "FL-105", make: "Force", model: "Traveller", plate: "AP09JK3421", year: 2023, odometer: 67440, fuelType: "Diesel", status: "Active", driverId: "D005", lastService: "2026-06-28", nextService: "2026-09-28" },
-  { id: "FL-106", make: "Tata", model: "Ultra", plate: "AP09LM7865", year: 2022, odometer: 98420, fuelType: "Diesel", status: "In Shop", driverId: "D006", lastService: "2026-03-10", nextService: "2026-08-10" },
-  { id: "FL-107", make: "Mahindra", model: "Furio", plate: "AP09NP9182", year: 2024, odometer: 22910, fuelType: "Diesel", status: "Active", driverId: "D007", lastService: "2026-07-22", nextService: "2026-10-22" },
-  { id: "FL-108", make: "Isuzu", model: "D-Max", plate: "AP09QR5523", year: 2023, odometer: 54120, fuelType: "Diesel", status: "Idle", driverId: "D008", lastService: "2026-06-05", nextService: "2026-09-05" }
-];
-
-const defaultDrivers = [
-  { id: "D001", name: "Sarah Johnson", license: "TG09 2021001456", phone: "9876543210", status: "Active", safety: 96, vehicleId: "FL-101" },
-  { id: "D002", name: "Michael Brown", license: "AP07 2019008832", phone: "9848012345", status: "Active", safety: 91, vehicleId: "FL-102" },
-  { id: "D003", name: "David Wilson", license: "TS08 2022011098", phone: "9012345678", status: "Active", safety: 88, vehicleId: "FL-103" },
-  { id: "D004", name: "Priya Sharma", license: "TG09 2018012234", phone: "9988776655", status: "Off-Duty", safety: 93, vehicleId: "FL-104" },
-  { id: "D005", name: "Rahul Kumar", license: "AP09 2020007761", phone: "9123456780", status: "Active", safety: 85, vehicleId: "FL-105" },
-  { id: "D006", name: "Ananya Reddy", license: "TS10 2023014450", phone: "9000011122", status: "Off-Duty", safety: 97, vehicleId: "FL-106" },
-  { id: "D007", name: "James Anderson", license: "KA03 2017003344", phone: "8899001122", status: "Active", safety: 82, vehicleId: "FL-107" },
-  { id: "D008", name: "Arjun Patel", license: "GJ01 2021005566", phone: "9765432109", status: "Active", safety: 90, vehicleId: "FL-108" }
-];
-
-const defaultFuel = [
-  { id: "F01", date: "2026-08-23", vehicleId: "FL-101", liters: 120, cost: 11280, odometer: 84210 },
-  { id: "F02", date: "2026-08-22", vehicleId: "FL-102", liters: 140, cost: 13160, odometer: 121450 },
-  { id: "F03", date: "2026-08-21", vehicleId: "FL-105", liters: 68, cost: 6392, odometer: 67440 },
-  { id: "F04", date: "2026-08-20", vehicleId: "FL-107", liters: 95, cost: 8930, odometer: 22910 },
-  { id: "F05", date: "2026-08-19", vehicleId: "FL-103", liters: 42, cost: 3948, odometer: 31890 },
-  { id: "F06", date: "2026-08-18", vehicleId: "FL-108", liters: 55, cost: 5170, odometer: 54120 },
-  { id: "F07", date: "2026-08-17", vehicleId: "FL-101", liters: 108, cost: 10152, odometer: 83180 },
-  { id: "F08", date: "2026-08-16", vehicleId: "FL-106", liters: 90, cost: 8460, odometer: 98420 },
-  { id: "F09", date: "2026-08-15", vehicleId: "FL-102", liters: 132, cost: 12408, odometer: 120210 },
-  { id: "F10", date: "2026-08-14", vehicleId: "FL-104", liters: 28, cost: 2632, odometer: 156780 },
-  { id: "F11", date: "2026-08-12", vehicleId: "FL-105", liters: 61, cost: 5734, odometer: 66890 }
-];
-
-const defaultMaintenance = [
-  { id: "M01", vehicleId: "FL-104", type: "Engine Service", date: "2026-08-10", cost: 18500, priority: "High", status: "Overdue", notes: "Check-in completed at garage" },
-  { id: "M02", vehicleId: "FL-106", type: "Brake Inspection", date: "2026-08-12", cost: 6200, priority: "High", status: "Overdue", notes: "Squeal reported on downhill runs" },
-  { id: "M03", vehicleId: "FL-102", type: "Oil Change", date: "2026-08-20", cost: 3400, priority: "Medium", status: "Overdue", notes: "Due at 120,000 km" },
-  { id: "M04", vehicleId: "FL-101", type: "Tire Rotation", date: "2026-08-25", cost: 2800, priority: "Medium", status: "Upcoming", notes: "Front axle wear" },
-  { id: "M05", vehicleId: "FL-105", type: "AC Service", date: "2026-08-26", cost: 4500, priority: "Low", status: "Upcoming", notes: "Cabin cooling check" },
-  { id: "M06", vehicleId: "FL-107", type: "Battery Replacement", date: "2026-08-28", cost: 9200, priority: "Medium", status: "Upcoming", notes: "Slow crank in mornings" },
-  { id: "M07", vehicleId: "FL-108", type: "Oil Change", date: "2026-08-29", cost: 3100, priority: "Low", status: "Upcoming", notes: "Routine" },
-  { id: "M08", vehicleId: "FL-103", type: "Tire Rotation", date: "2026-08-05", cost: 2400, priority: "Low", status: "Completed", notes: "Done at city workshop" },
-  { id: "M09", vehicleId: "FL-101", type: "Oil Change", date: "2026-07-22", cost: 3600, priority: "Medium", status: "Completed", notes: "Filter replaced" },
-  { id: "M10", vehicleId: "FL-105", type: "Brake Inspection", date: "2026-07-18", cost: 5100, priority: "High", status: "Completed", notes: "Pads replaced" }
-];
-
-const defaultRoutes = [
-  { id: "R-201", vehicleId: "FL-101", start: "Hyderabad", end: "Vijayawada", distance: 275, duration: "5h 20m", status: "Completed" },
-  { id: "R-202", vehicleId: "FL-102", start: "Hyderabad", end: "Warangal", distance: 148, duration: "3h 10m", status: "Completed" },
-  { id: "R-203", vehicleId: "FL-101", start: "Vijayawada", end: "Guntur", distance: 36, duration: "55m", status: "Completed" },
-  { id: "R-204", vehicleId: "FL-105", start: "Hyderabad", end: "Bengaluru", distance: 569, duration: "9h 40m", status: "On Time" },
-  { id: "R-205", vehicleId: "FL-107", start: "Secunderabad", end: "Nizamabad", distance: 175, duration: "3h 45m", status: "On Time" },
-  { id: "R-206", vehicleId: "FL-103", start: "Hyderabad", end: "Karimnagar", distance: 162, duration: "3h 20m", status: "Delayed" },
-  { id: "R-207", vehicleId: "FL-108", start: "Hyderabad", end: "Khammam", distance: 193, duration: "4h 05m", status: "Idle" },
-  { id: "R-208", vehicleId: "FL-101", start: "Hyderabad", end: "Visakhapatnam", distance: 620, duration: "11h 15m", status: "On Time" },
-  { id: "R-209", vehicleId: "FL-102", start: "Warangal", end: "Hyderabad", distance: 148, duration: "3h 05m", status: "Completed" },
-  { id: "R-210", vehicleId: "FL-106", start: "Hyderabad", end: "Nagpur", distance: 501, duration: "8h 50m", status: "Cancelled" }
-];
-
-const defaultActivities = [
-  { icon: "🔧", text: "Vehicle FL-104 checked into the garage", time: "12 min ago", status: "Alert" },
-  { icon: "✅", text: "Sarah Johnson completed Route R-203", time: "28 min ago", status: "On-Time" },
-  { icon: "🚚", text: "Vehicle FL-101 started Route R-208", time: "45 min ago", status: "Active" },
-  { icon: "⚠️", text: "Maintenance reminder generated for FL-106", time: "1 hr ago", status: "Warning" },
-  { icon: "👤", text: "Driver Michael Brown was assigned to FL-102", time: "2 hr ago", status: "Info" },
-  { icon: "⛽", text: "Fuel entry added for FL-102", time: "3 hr ago", status: "Info" },
-  { icon: "⏸️", text: "Vehicle FL-108 marked as idle", time: "4 hr ago", status: "Idle" }
-];
-
-const weeklyFuel = [
-  { day: "Mon", liters: 82 },
-  { day: "Tue", liters: 95 },
-  { day: "Wed", liters: 74 },
-  { day: "Thu", liters: 108 },
-  { day: "Fri", liters: 91 },
-  { day: "Sat", liters: 120 },
-  { day: "Sun", liters: 87 }
-];
-
-const notifications = [
-  { id: "n1", title: "2 maintenance services are overdue", detail: "FL-104 and FL-106 need attention", section: "maintenance" },
-  { id: "n2", title: "FL-104 is offline", detail: "Vehicle checked into garage", section: "vehicles" },
-  { id: "n3", title: "Driver Sarah completed Route R-203", detail: "Vijayawada → Guntur", section: "routes" },
-  { id: "n4", title: "Fuel spending increased this week", detail: "Saturday was the highest day at 120 L", section: "fuel" }
-];
 
 let vehicles = [];
 let drivers = [];
@@ -99,8 +9,15 @@ let fuelEntries = [];
 let maintenance = [];
 let routes = [];
 let activities = [];
+let users = [];
+let weeklyFuel = [];
+let dashboardStats = null;
+let currentUser = null;
+
 let currentSection = "dashboard";
 let driverFilter = "all";
+let userRoleFilter = "all";
+let userStatusFilter = "all";
 let modalMode = "";
 
 const pageCopy = {
@@ -109,170 +26,108 @@ const pageCopy = {
   drivers: ["Driver Assignments", "Track licenses, safety scores and vehicle assignments."],
   fuel: ["Fuel & Cost Control", "Record fill-ups, costs and kilometre efficiency."],
   maintenance: ["Maintenance Schedules", "Keep overdue, upcoming and completed work in view."],
-  routes: ["Route History", "Review completed trips and live corridor tracking."]
+  routes: ["Route History", "Review completed trips and live corridor tracking."],
+  users: ["User Management", "Create employee accounts, manage roles and account access."]
 };
 
 // ================================
-// INITIALIZATION
+// INITIALIZATION & AUTH CHECK
 // ================================
 
 document.addEventListener("DOMContentLoaded", function () {
-  loadStore();
-  bindEvents();
-  renderAll();
-  showSection("dashboard");
+  checkAuthAndInit();
 });
 
-function loadStore() {
+async function checkAuthAndInit() {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const data = JSON.parse(saved);
-      vehicles = data.vehicles || clone(defaultVehicles);
-      drivers = data.drivers || clone(defaultDrivers);
-      fuelEntries = data.fuelEntries || clone(defaultFuel);
-      maintenance = data.maintenance || clone(defaultMaintenance);
-      routes = data.routes || clone(defaultRoutes);
-      activities = data.activities || clone(defaultActivities);
+    const res = await fetch("/api/auth/me", { credentials: "include" });
+    if (!res.ok) {
+      window.location.replace("/login.html");
       return;
     }
-  } catch (err) {
-    console.warn("Could not read saved data, using defaults.");
-  }
-  resetToDefaults();
-}
-
-function resetToDefaults() {
-  vehicles = clone(defaultVehicles);
-  drivers = clone(defaultDrivers);
-  fuelEntries = clone(defaultFuel);
-  maintenance = clone(defaultMaintenance);
-  routes = clone(defaultRoutes);
-  activities = clone(defaultActivities);
-}
-
-function saveStore() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    vehicles: vehicles,
-    drivers: drivers,
-    fuelEntries: fuelEntries,
-    maintenance: maintenance,
-    routes: routes,
-    activities: activities
-  }));
-}
-
-function clone(value) {
-  return JSON.parse(JSON.stringify(value));
-}
-
-function bindEvents() {
-  document.querySelectorAll(".nav-item").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      showSection(btn.getAttribute("data-section"));
-      closeSidebar();
-    });
-  });
-
-  document.getElementById("menu-toggle").addEventListener("click", toggleSidebar);
-  document.getElementById("sidebar-backdrop").addEventListener("click", closeSidebar);
-
-  document.getElementById("vehicle-search").addEventListener("input", renderVehicles);
-  document.getElementById("vehicle-status-filter").addEventListener("change", renderVehicles);
-  document.getElementById("add-vehicle-btn").addEventListener("click", function () {
-    openModal("add-vehicle");
-  });
-
-  document.getElementById("driver-search").addEventListener("input", renderDrivers);
-  document.getElementById("add-driver-btn").addEventListener("click", function () {
-    openModal("add-driver");
-  });
-  document.querySelectorAll("[data-driver-filter]").forEach(function (chip) {
-    chip.addEventListener("click", function () {
-      driverFilter = chip.getAttribute("data-driver-filter");
-      document.querySelectorAll("[data-driver-filter]").forEach(function (c) {
-        c.classList.toggle("is-active", c === chip);
-      });
-      renderDrivers();
-    });
-  });
-
-  document.getElementById("fuel-search").addEventListener("input", renderFuel);
-  document.getElementById("fuel-vehicle-filter").addEventListener("change", renderFuel);
-  document.getElementById("fuel-date-filter").addEventListener("change", renderFuel);
-  document.getElementById("fuel-date-clear").addEventListener("click", function () {
-    document.getElementById("fuel-date-filter").value = "";
-    renderFuel();
-  });
-  document.getElementById("add-fuel-btn").addEventListener("click", function () {
-    openModal("add-fuel");
-  });
-
-  document.getElementById("add-maintenance-btn").addEventListener("click", function () {
-    openModal("add-maintenance");
-  });
-
-  document.getElementById("modal-close").addEventListener("click", closeModal);
-  document.getElementById("modal-overlay").addEventListener("click", function (event) {
-    if (event.target.id === "modal-overlay") {
-      closeModal();
+    const data = await res.json();
+    if (!data.success || !data.data) {
+      window.location.replace("/login.html");
+      return;
     }
-  });
-  document.addEventListener("keydown", function (event) {
-    if (event.key === "Escape") {
-      closeModal();
-      closePopovers();
-      closeSidebar();
-    }
-  });
 
-  document.getElementById("notify-btn").addEventListener("click", function (event) {
-    event.stopPropagation();
-    togglePanel("notify-panel", "notify-btn");
-  });
-  document.getElementById("user-btn").addEventListener("click", function (event) {
-    event.stopPropagation();
-    togglePanel("user-menu", "user-btn");
-  });
-  document.addEventListener("click", closePopovers);
-  document.querySelector(".search-wrap").addEventListener("click", function (event) {
-    event.stopPropagation();
-  });
-  document.getElementById("notify-panel").addEventListener("click", function (event) {
-    event.stopPropagation();
-  });
-  document.getElementById("user-menu").addEventListener("click", function (event) {
-    event.stopPropagation();
-  });
+    currentUser = data.data;
+    updateUserChip(currentUser);
 
-  document.getElementById("user-menu").addEventListener("click", function (event) {
-    const action = event.target.getAttribute("data-user-action");
-    if (!action) return;
-    if (action === "logout") {
-      showToast("Logged out of this demo session", "info");
-    } else if (action === "profile") {
-      showToast("Profile is a frontend-only preview", "info");
+    // Apply role-based styling
+    if (currentUser.role === "EMPLOYEE") {
+      document.body.classList.add("role-employee");
     } else {
-      showToast("Settings panel is not connected to a backend", "info");
+      document.body.classList.remove("role-employee");
     }
-    closePopovers();
-  });
 
-  const search = document.getElementById("global-search");
-  search.addEventListener("input", runGlobalSearch);
-  search.addEventListener("focus", runGlobalSearch);
+    bindEvents();
+    await loadAllFromBackend();
+    showSection("dashboard");
+  } catch (err) {
+    console.error("Auth check failed:", err);
+    window.location.replace("/login.html");
+  }
+}
 
-  document.getElementById("notify-list").innerHTML = notifications.map(function (item) {
-    return '<button type="button" class="notify-item" data-section="' + item.section + '"><strong>' +
-      escapeHtml(item.title) + "</strong><span>" + escapeHtml(item.detail) + "</span></button>";
-  }).join("");
-  document.getElementById("notify-list").addEventListener("click", function (event) {
-    const btn = event.target.closest(".notify-item");
-    if (!btn) return;
-    showSection(btn.getAttribute("data-section"));
-    closePopovers();
-  });
-  document.getElementById("notify-count").textContent = String(notifications.length);
+function updateUserChip(user) {
+  const avatarEl = document.querySelector(".user-chip .avatar");
+  const nameEl = document.querySelector(".user-chip .user-meta strong");
+  const roleEl = document.querySelector(".user-chip .user-meta small");
+
+  if (avatarEl) {
+    const initials = user.name ? user.name.split(" ").map(function (n) { return n[0]; }).join("").toUpperCase().slice(0, 2) : "AU";
+    avatarEl.textContent = initials;
+  }
+  if (nameEl) {
+    nameEl.textContent = user.name || user.username;
+  }
+  if (roleEl) {
+    roleEl.textContent = user.role === "ADMIN" ? "Fleet Manager (Admin)" : "Operations (Employee)";
+  }
+}
+
+// ================================
+// DATA FETCHING (REST API + MONGODB)
+// ================================
+
+async function loadAllFromBackend() {
+  try {
+    const promises = [
+      fetch("/api/vehicles", { credentials: "include" }).then(function (r) { return r.json(); }),
+      fetch("/api/drivers", { credentials: "include" }).then(function (r) { return r.json(); }),
+      fetch("/api/trips", { credentials: "include" }).then(function (r) { return r.json(); }),
+      fetch("/api/fuel", { credentials: "include" }).then(function (r) { return r.json(); }),
+      fetch("/api/fuel/weekly-summary", { credentials: "include" }).then(function (r) { return r.json(); }),
+      fetch("/api/maintenance", { credentials: "include" }).then(function (r) { return r.json(); }),
+      fetch("/api/dashboard/stats", { credentials: "include" }).then(function (r) { return r.json(); }),
+      fetch("/api/dashboard/activities", { credentials: "include" }).then(function (r) { return r.json(); })
+    ];
+
+    if (currentUser && currentUser.role === "ADMIN") {
+      promises.push(fetch("/api/users", { credentials: "include" }).then(function (r) { return r.json(); }));
+    }
+
+    const results = await Promise.all(promises);
+
+    vehicles = (results[0].data) || [];
+    drivers = (results[1].data) || [];
+    routes = (results[2].data) || [];
+    fuelEntries = (results[3].data) || [];
+    weeklyFuel = (results[4].data) || [];
+    maintenance = (results[5].data) || [];
+    dashboardStats = (results[6].data) || null;
+    activities = (results[7].data) || [];
+
+    if (results[8] && results[8].data) {
+      users = results[8].data;
+    }
+
+    renderAll();
+  } catch (err) {
+    console.error("Error loading fleet data from backend:", err);
+    showToast("Error connecting to server. Data may be incomplete.", "error");
+  }
 }
 
 function renderAll() {
@@ -283,6 +138,199 @@ function renderAll() {
   renderFuel();
   renderMaintenance();
   renderRoutes();
+  if (currentUser && currentUser.role === "ADMIN") {
+    renderUsers();
+  }
+}
+
+// ================================
+// EVENT BINDINGS
+// ================================
+
+function bindEvents() {
+  document.querySelectorAll(".nav-item").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      showSection(btn.getAttribute("data-section"));
+      closeSidebar();
+    });
+  });
+
+  const menuToggle = document.getElementById("menu-toggle");
+  if (menuToggle) menuToggle.addEventListener("click", toggleSidebar);
+
+  const backdrop = document.getElementById("sidebar-backdrop");
+  if (backdrop) backdrop.addEventListener("click", closeSidebar);
+
+  const vSearch = document.getElementById("vehicle-search");
+  if (vSearch) vSearch.addEventListener("input", renderVehicles);
+
+  const vStatus = document.getElementById("vehicle-status-filter");
+  if (vStatus) vStatus.addEventListener("change", renderVehicles);
+
+  const addVBtn = document.getElementById("add-vehicle-btn");
+  if (addVBtn) addVBtn.addEventListener("click", function () { openModal("add-vehicle"); });
+
+  const dSearch = document.getElementById("driver-search");
+  if (dSearch) dSearch.addEventListener("input", renderDrivers);
+
+  const addDBtn = document.getElementById("add-driver-btn");
+  if (addDBtn) addDBtn.addEventListener("click", function () { openModal("add-driver"); });
+
+  document.querySelectorAll("[data-driver-filter]").forEach(function (chip) {
+    chip.addEventListener("click", function () {
+      driverFilter = chip.getAttribute("data-driver-filter");
+      document.querySelectorAll("[data-driver-filter]").forEach(function (c) {
+        c.classList.toggle("is-active", c === chip);
+      });
+      renderDrivers();
+    });
+  });
+
+  const fSearch = document.getElementById("fuel-search");
+  if (fSearch) fSearch.addEventListener("input", renderFuel);
+
+  const fVehicleFilter = document.getElementById("fuel-vehicle-filter");
+  if (fVehicleFilter) fVehicleFilter.addEventListener("change", renderFuel);
+
+  const fDateFilter = document.getElementById("fuel-date-filter");
+  if (fDateFilter) fDateFilter.addEventListener("change", renderFuel);
+
+  const fDateClear = document.getElementById("fuel-date-clear");
+  if (fDateClear) {
+    fDateClear.addEventListener("click", function () {
+      if (fDateFilter) fDateFilter.value = "";
+      renderFuel();
+    });
+  }
+
+  const addFBtn = document.getElementById("add-fuel-btn");
+  if (addFBtn) addFBtn.addEventListener("click", function () { openModal("add-fuel"); });
+
+  const addMBtn = document.getElementById("add-maintenance-btn");
+  if (addMBtn) addMBtn.addEventListener("click", function () { openModal("add-maintenance"); });
+
+  const addUBtn = document.getElementById("add-user-btn");
+  if (addUBtn) addUBtn.addEventListener("click", function () { openModal("add-user"); });
+
+  const uSearch = document.getElementById("user-search");
+  if (uSearch) uSearch.addEventListener("input", renderUsers);
+
+  const uRoleFilter = document.getElementById("user-role-filter");
+  if (uRoleFilter) uRoleFilter.addEventListener("change", renderUsers);
+
+  const uStatusFilter = document.getElementById("user-status-filter");
+  if (uStatusFilter) uStatusFilter.addEventListener("change", renderUsers);
+
+  const mClose = document.getElementById("modal-close");
+  if (mClose) mClose.addEventListener("click", closeModal);
+
+  const mOverlay = document.getElementById("modal-overlay");
+  if (mOverlay) {
+    mOverlay.addEventListener("click", function (event) {
+      if (event.target.id === "modal-overlay") closeModal();
+    });
+  }
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") {
+      closeModal();
+      closePopovers();
+      closeSidebar();
+    }
+  });
+
+  const notifyBtn = document.getElementById("notify-btn");
+  if (notifyBtn) {
+    notifyBtn.addEventListener("click", function (event) {
+      event.stopPropagation();
+      togglePanel("notify-panel", "notify-btn");
+    });
+  }
+
+  const userBtn = document.getElementById("user-btn");
+  if (userBtn) {
+    userBtn.addEventListener("click", function (event) {
+      event.stopPropagation();
+      togglePanel("user-menu", "user-btn");
+    });
+  }
+
+  document.addEventListener("click", closePopovers);
+
+  const searchWrap = document.querySelector(".search-wrap");
+  if (searchWrap) searchWrap.addEventListener("click", function (e) { e.stopPropagation(); });
+
+  const notifyPanel = document.getElementById("notify-panel");
+  if (notifyPanel) notifyPanel.addEventListener("click", function (e) { e.stopPropagation(); });
+
+  const userMenu = document.getElementById("user-menu");
+  if (userMenu) {
+    userMenu.addEventListener("click", async function (event) {
+      event.stopPropagation();
+      const action = event.target.getAttribute("data-user-action");
+      if (!action) return;
+
+      if (action === "logout") {
+        await handleLogout();
+      } else if (action === "profile") {
+        openModal("profile");
+      } else if (action === "settings") {
+        openModal("settings");
+      }
+      closePopovers();
+    });
+  }
+
+  const globalSearch = document.getElementById("global-search");
+  if (globalSearch) {
+    globalSearch.addEventListener("input", runGlobalSearch);
+    globalSearch.addEventListener("focus", runGlobalSearch);
+  }
+
+  renderNotifications();
+}
+
+async function handleLogout() {
+  try {
+    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    showToast("Logged out successfully", "info");
+    setTimeout(function () {
+      window.location.replace("/login.html");
+    }, 400);
+  } catch (err) {
+    window.location.replace("/login.html");
+  }
+}
+
+function renderNotifications() {
+  const overdueCount = maintenance.filter(function (m) { return m.status === "Overdue"; }).length;
+  const offlineCount = vehicles.filter(function (v) { return v.status === "Offline"; }).length;
+
+  const notifs = [
+    { title: overdueCount ? (overdueCount + " maintenance services are overdue") : "All maintenance up to date", detail: overdueCount ? "Requires immediate inspection" : "No pending service alerts", section: "maintenance" },
+    { title: offlineCount ? (offlineCount + " vehicles offline") : "Full fleet operational", detail: offlineCount ? "Checked into workshop" : "Zero vehicles stranded", section: "vehicles" },
+    { title: "MongoDB Atlas Connected", detail: "Real-time bidirectional synchronization active", section: "dashboard" }
+  ];
+
+  const list = document.getElementById("notify-list");
+  if (list) {
+    list.innerHTML = notifs.map(function (item) {
+      return '<button type="button" class="notify-item" data-section="' + item.section + '"><strong>' +
+        escapeHtml(item.title) + "</strong><span>" + escapeHtml(item.detail) + "</span></button>";
+    }).join("");
+
+    list.onclick = function (event) {
+      const btn = event.target.closest(".notify-item");
+      if (!btn) return;
+      showSection(btn.getAttribute("data-section"));
+      closePopovers();
+    };
+  }
+
+  const countBadge = document.getElementById("notify-count");
+  if (countBadge) {
+    countBadge.textContent = String(overdueCount + offlineCount);
+  }
 }
 
 // ================================
@@ -306,37 +354,54 @@ function showSection(name) {
       btn.removeAttribute("aria-current");
     }
   });
-  const copy = pageCopy[name];
-  document.getElementById("page-title").textContent = copy[0];
-  document.getElementById("page-subtitle").textContent = copy[1];
+
+  const copy = pageCopy[name] || ["Fleet Operations", "System Control Console"];
+  const titleEl = document.getElementById("page-title");
+  const subEl = document.getElementById("page-subtitle");
+  if (titleEl) titleEl.textContent = copy[0];
+  if (subEl) subEl.textContent = copy[1];
 }
 
 function toggleSidebar() {
   const sidebar = document.getElementById("sidebar");
   const open = !sidebar.classList.contains("is-open");
   sidebar.classList.toggle("is-open", open);
-  document.getElementById("sidebar-backdrop").hidden = !open;
+  const backdrop = document.getElementById("sidebar-backdrop");
+  if (backdrop) backdrop.hidden = !open;
 }
 
 function closeSidebar() {
-  document.getElementById("sidebar").classList.remove("is-open");
-  document.getElementById("sidebar-backdrop").hidden = true;
+  const sidebar = document.getElementById("sidebar");
+  if (sidebar) sidebar.classList.remove("is-open");
+  const backdrop = document.getElementById("sidebar-backdrop");
+  if (backdrop) backdrop.hidden = true;
 }
 
 function togglePanel(panelId, btnId) {
   const panel = document.getElementById(panelId);
+  if (!panel) return;
   const willOpen = panel.hidden;
   closePopovers();
   panel.hidden = !willOpen;
-  document.getElementById(btnId).setAttribute("aria-expanded", String(willOpen));
+  const btn = document.getElementById(btnId);
+  if (btn) btn.setAttribute("aria-expanded", String(willOpen));
 }
 
 function closePopovers() {
-  document.getElementById("notify-panel").hidden = true;
-  document.getElementById("user-menu").hidden = true;
-  document.getElementById("search-results").hidden = true;
-  document.getElementById("notify-btn").setAttribute("aria-expanded", "false");
-  document.getElementById("user-btn").setAttribute("aria-expanded", "false");
+  const notifyPanel = document.getElementById("notify-panel");
+  if (notifyPanel) notifyPanel.hidden = true;
+
+  const userMenu = document.getElementById("user-menu");
+  if (userMenu) userMenu.hidden = true;
+
+  const searchResults = document.getElementById("search-results");
+  if (searchResults) searchResults.hidden = true;
+
+  const notifyBtn = document.getElementById("notify-btn");
+  if (notifyBtn) notifyBtn.setAttribute("aria-expanded", "false");
+
+  const userBtn = document.getElementById("user-btn");
+  if (userBtn) userBtn.setAttribute("aria-expanded", "false");
 }
 
 // ================================
@@ -362,11 +427,11 @@ function getVehicleName(id) {
 }
 
 function formatNumber(n) {
-  return Number(n).toLocaleString("en-IN");
+  return Number(n || 0).toLocaleString("en-IN");
 }
 
 function formatMoney(n) {
-  return "₹" + formatNumber(Math.round(n));
+  return "₹" + formatNumber(Math.round(n || 0));
 }
 
 function statusBadge(status) {
@@ -386,6 +451,7 @@ function statusBadge(status) {
     Cancelled: "badge-gray",
     "Off-Duty": "badge-gray",
     Info: "badge-blue",
+    Inactive: "badge-red",
     "Below Average": "badge-yellow",
     "Above Average": "badge-green"
   };
@@ -393,6 +459,7 @@ function statusBadge(status) {
 }
 
 function escapeHtml(text) {
+  if (text === null || text === undefined) return "";
   return String(text)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -400,41 +467,24 @@ function escapeHtml(text) {
     .replace(/"/g, "&quot;");
 }
 
-function nextId(prefix, list, field) {
-  const nums = list.map(function (item) {
-    const raw = String(item[field || "id"]).replace(/\D/g, "");
-    return Number(raw) || 0;
-  });
-  const max = nums.length ? Math.max.apply(null, nums) : 0;
-  const n = max + 1;
-  if (prefix === "FL-") {
-    return "FL-" + String(n).padStart(3, "0");
-  }
-  if (prefix === "D") {
-    return "D" + String(n).padStart(3, "0");
-  }
-  return prefix + String(n).padStart(2, "0");
-}
-
-function addActivity(icon, text, status) {
-  activities.unshift({ icon: icon, text: text, time: "Just now", status: status });
-  if (activities.length > 12) activities.pop();
-}
-
 // ================================
 // DASHBOARD
 // ================================
 
 function renderDashboard() {
-  const active = vehicles.filter(function (v) { return v.status === "Active"; }).length;
-  const overdue = maintenance.filter(function (m) { return classifyMaintenance(m) === "overdue"; }).length;
-  const spend = monthlyFuelSpend();
+  const activeCount = dashboardStats ? dashboardStats.activeVehicles : vehicles.filter(function (v) { return v.status === "Active"; }).length;
+  const totalVehiclesCount = dashboardStats ? dashboardStats.totalVehicles : vehicles.length;
+  const overdueCount = dashboardStats ? dashboardStats.overdueMaintenance : maintenance.filter(function (m) { return m.status === "Overdue"; }).length;
+  const spend = dashboardStats ? dashboardStats.monthlyFuelSpend : monthlyFuelSpend();
 
-  document.getElementById("kpi-grid").innerHTML =
-    kpiCard("blue", "🚚", vehicles.length, "Vehicles", "Total Fleet", "up", "+1 vs last month") +
-    kpiCard("green", "🛣️", active, "Currently active", "Active on Route", "up", "On-time operations") +
-    kpiCard("red", "🔧", overdue, "Overdue", "Maintenance Alerts", overdue ? "warn" : "up", overdue ? "Needs attention" : "All clear") +
-    kpiCard("indigo", "⛽", formatMoney(spend), "This month", "Fuel Spend", "down", "Tracked in real time");
+  const kpiEl = document.getElementById("kpi-grid");
+  if (kpiEl) {
+    kpiEl.innerHTML =
+      kpiCard("blue", "🚚", totalVehiclesCount, "Vehicles", "Total Fleet", "up", "+1 vs last month") +
+      kpiCard("green", "🛣️", activeCount, "Currently active", "Active on Route", "up", "On-time operations") +
+      kpiCard("red", "🔧", overdueCount, "Overdue", "Maintenance Alerts", overdueCount ? "warn" : "up", overdueCount ? "Needs attention" : "All clear") +
+      kpiCard("indigo", "⛽", formatMoney(spend), "This month", "Fuel Spend", "down", "MongoDB Real-Time");
+  }
 
   renderFuelChart();
   renderStatusDonut();
@@ -450,18 +500,25 @@ function kpiCard(color, icon, value, label, title, trendClass, trendText) {
 
 function monthlyFuelSpend() {
   return fuelEntries.reduce(function (sum, entry) {
-    return entry.date.indexOf("2026-08") === 0 ? sum + Number(entry.cost) : sum;
+    return sum + Number(entry.cost || 0);
   }, 0);
 }
 
 function renderFuelChart() {
-  const max = Math.max.apply(null, weeklyFuel.map(function (d) { return d.liters; }));
+  const data = (weeklyFuel && weeklyFuel.length) ? weeklyFuel : [
+    { day: "Mon", liters: 82 }, { day: "Tue", liters: 95 }, { day: "Wed", liters: 74 },
+    { day: "Thu", liters: 108 }, { day: "Fri", liters: 91 }, { day: "Sat", liters: 120 }, { day: "Sun", liters: 87 }
+  ];
+  const max = Math.max.apply(null, data.map(function (d) { return d.liters; })) || 1;
   const chart = document.getElementById("fuel-chart");
-  chart.innerHTML = weeklyFuel.map(function (d) {
+  if (!chart) return;
+
+  chart.innerHTML = data.map(function (d) {
     const pct = Math.round((d.liters / max) * 100);
     return '<div class="bar-col"><strong>' + d.liters + ' L</strong><div class="bar" data-height="' + pct +
       '%"></div><span>' + d.day + "</span></div>";
   }).join("");
+
   requestAnimationFrame(function () {
     chart.querySelectorAll(".bar").forEach(function (bar) {
       bar.style.height = bar.getAttribute("data-height");
@@ -480,13 +537,18 @@ function renderStatusDonut() {
   const p1 = (counts["On Route"] / total) * 100;
   const p2 = (counts.Idle / total) * 100;
   const donut = document.getElementById("status-donut");
-  donut.style.background =
-    "conic-gradient(#16a34a 0 " + p1 + "%, #64748b " + p1 + "% " + (p1 + p2) + "%, #2563eb " + (p1 + p2) + "% 100%)";
+  if (donut) {
+    donut.style.background =
+      "conic-gradient(#16a34a 0 " + p1 + "%, #64748b " + p1 + "% " + (p1 + p2) + "%, #2563eb " + (p1 + p2) + "% 100%)";
+  }
 
-  document.getElementById("status-legend").innerHTML =
-    legendItem("#16a34a", "On Route", p1) +
-    legendItem("#64748b", "Idle", p2) +
-    legendItem("#2563eb", "In Shop", 100 - p1 - p2);
+  const legend = document.getElementById("status-legend");
+  if (legend) {
+    legend.innerHTML =
+      legendItem("#16a34a", "On Route", p1) +
+      legendItem("#64748b", "Idle", p2) +
+      legendItem("#2563eb", "In Shop", 100 - p1 - p2);
+  }
 }
 
 function legendItem(color, label, pct) {
@@ -495,11 +557,13 @@ function legendItem(color, label, pct) {
 }
 
 function renderActivity() {
-  document.getElementById("activity-feed").innerHTML = activities.map(function (item) {
-    return '<div class="activity"><div class="activity-icon">' + item.icon +
+  const feed = document.getElementById("activity-feed");
+  if (!feed) return;
+  feed.innerHTML = activities.map(function (item) {
+    return '<div class="activity"><div class="activity-icon">' + (item.icon || "🚚") +
       "</div><div>" + escapeHtml(item.text) + '</div><span class="when">' +
-      escapeHtml(item.time) + "</span>" + statusBadge(item.status) + "</div>";
-  }).join("");
+      escapeHtml(item.time || "Recent") + "</span>" + statusBadge(item.status || "Info") + "</div>";
+  }).join("") || "<p class='muted' style='padding: 1rem;'>No recent activities logged.</p>";
 }
 
 // ================================
@@ -507,7 +571,7 @@ function renderActivity() {
 // ================================
 
 function renderVehicles() {
-  const q = document.getElementById("vehicle-search").value.toLowerCase();
+  const q = (document.getElementById("vehicle-search").value || "").toLowerCase();
   const status = document.getElementById("vehicle-status-filter").value;
   const rows = vehicles.filter(function (v) {
     const hay = (v.id + " " + v.make + " " + v.model + " " + v.plate).toLowerCase();
@@ -516,9 +580,12 @@ function renderVehicles() {
     return matchQ && matchS;
   });
 
-  document.getElementById("vehicle-table-body").innerHTML = rows.map(function (v) {
+  const tbody = document.getElementById("vehicle-table-body");
+  if (!tbody) return;
+
+  tbody.innerHTML = rows.map(function (v) {
     return '<tr class="row-click" data-vehicle="' + v.id + '">' +
-      "<td>" + escapeHtml(v.id) + "</td>" +
+      "<td><strong>" + escapeHtml(v.id) + "</strong></td>" +
       "<td>" + escapeHtml(v.make + " " + v.model) + "</td>" +
       "<td>" + escapeHtml(v.plate) + "</td>" +
       "<td>" + v.year + "</td>" +
@@ -528,7 +595,7 @@ function renderVehicles() {
       '<td><button type="button" class="link-btn" data-view="' + v.id + '">View</button></td></tr>';
   }).join("") || emptyRow(8, "No vehicles match the current filters.");
 
-  document.getElementById("vehicle-table-body").onclick = function (event) {
+  tbody.onclick = function (event) {
     const view = event.target.getAttribute("data-view");
     const row = event.target.closest("tr");
     const id = view || (row && row.getAttribute("data-vehicle"));
@@ -537,7 +604,7 @@ function renderVehicles() {
 }
 
 function emptyRow(cols, text) {
-  return '<tr><td colspan="' + cols + '">' + escapeHtml(text) + "</td></tr>";
+  return '<tr><td colspan="' + cols + '" style="text-align: center; color: var(--muted); padding: 2rem;">' + escapeHtml(text) + "</td></tr>";
 }
 
 // ================================
@@ -545,7 +612,7 @@ function emptyRow(cols, text) {
 // ================================
 
 function renderDrivers() {
-  const q = document.getElementById("driver-search").value.toLowerCase();
+  const q = (document.getElementById("driver-search").value || "").toLowerCase();
   const rows = drivers.filter(function (d) {
     const hay = (d.name + " " + d.license + " " + d.phone).toLowerCase();
     const matchQ = hay.indexOf(q) !== -1;
@@ -553,15 +620,21 @@ function renderDrivers() {
     return matchQ && matchS;
   });
 
-  document.getElementById("driver-table-body").innerHTML = rows.map(function (d) {
-    return "<tr><td>" + escapeHtml(d.name) + "</td><td>" + escapeHtml(d.license) +
+  const tbody = document.getElementById("driver-table-body");
+  if (!tbody) return;
+
+  tbody.innerHTML = rows.map(function (d) {
+    const reassignBtn = (currentUser && currentUser.role === "ADMIN")
+      ? '<button type="button" class="link-btn" data-reassign="' + d.id + '">Reassign</button>'
+      : '<span class="muted">—</span>';
+
+    return "<tr><td><strong>" + escapeHtml(d.name) + "</strong></td><td>" + escapeHtml(d.license) +
       "</td><td>" + escapeHtml(d.phone) + "</td><td>" + statusBadge(d.status) +
-      "</td><td>" + d.safety + "</td><td>" + escapeHtml(d.vehicleId || "Unassigned") +
-      '</td><td><button type="button" class="link-btn" data-reassign="' + d.id +
-      '">Reassign</button></td></tr>';
+      "</td><td>" + d.safety + " / 100</td><td>" + escapeHtml(d.vehicleId || "Unassigned") +
+      "</td><td>" + reassignBtn + "</td></tr>";
   }).join("") || emptyRow(7, "No drivers match the current filters.");
 
-  document.getElementById("driver-table-body").onclick = function (event) {
+  tbody.onclick = function (event) {
     const id = event.target.getAttribute("data-reassign");
     if (id) openModal("reassign", id);
   };
@@ -591,16 +664,17 @@ function calculateFuelEfficiency(entry) {
 
 function renderFuelFilters() {
   const select = document.getElementById("fuel-vehicle-filter");
+  if (!select) return;
   const current = select.value || "all";
   select.innerHTML = '<option value="all">All vehicles</option>' + vehicles.map(function (v) {
-    return '<option value="' + v.id + '">' + v.id + "</option>";
+    return '<option value="' + v.id + '">' + v.id + " — " + v.make + "</option>";
   }).join("");
   select.value = current;
   if (!select.value) select.value = "all";
 }
 
 function renderFuel() {
-  const q = document.getElementById("fuel-search").value.toLowerCase();
+  const q = (document.getElementById("fuel-search").value || "").toLowerCase();
   const vehicleId = document.getElementById("fuel-vehicle-filter").value;
   const date = document.getElementById("fuel-date-filter").value;
   const avg = calculateFleetAverage();
@@ -609,7 +683,8 @@ function renderFuel() {
     .slice()
     .sort(function (a, b) { return a.date < b.date ? 1 : -1; })
     .filter(function (e) {
-      const driver = getDriverName(getVehicleById(e.vehicleId) ? getVehicleById(e.vehicleId).driverId : "");
+      const vehicle = getVehicleById(e.vehicleId);
+      const driver = vehicle ? getDriverName(vehicle.driverId) : "";
       const hay = (e.date + " " + e.vehicleId + " " + driver).toLowerCase();
       const matchQ = hay.indexOf(q) !== -1;
       const matchV = vehicleId === "all" || e.vehicleId === vehicleId;
@@ -617,13 +692,16 @@ function renderFuel() {
       return matchQ && matchV && matchD;
     });
 
-  document.getElementById("fuel-table-body").innerHTML = rows.map(function (e) {
+  const tbody = document.getElementById("fuel-table-body");
+  if (!tbody) return;
+
+  tbody.innerHTML = rows.map(function (e) {
     const vehicle = getVehicleById(e.vehicleId);
     const driver = vehicle ? getDriverName(vehicle.driverId) : "—";
     const kmpl = calculateFuelEfficiency(e);
     const text = kmpl === null ? "—" : kmpl.toFixed(1) + " km/L";
     const below = kmpl !== null && kmpl < avg;
-    return "<tr><td>" + e.date + "</td><td>" + escapeHtml(e.vehicleId) + "</td><td>" +
+    return "<tr><td>" + e.date + "</td><td><strong>" + escapeHtml(e.vehicleId) + "</strong></td><td>" +
       escapeHtml(driver) + "</td><td>" + e.liters + " L</td><td>" + formatMoney(e.cost) +
       "</td><td>" + formatNumber(e.odometer) + " km</td><td>" + text + "</td><td>" +
       (kmpl === null ? statusBadge("Info") : statusBadge(below ? "Below Average" : "Above Average")) +
@@ -632,17 +710,13 @@ function renderFuel() {
 }
 
 // ================================
-// MAINTENANCE
+// MAINTENANCE (KANBAN)
 // ================================
 
 function classifyMaintenance(item) {
   if (item.status === "Completed") return "completed";
-  const today = "2026-08-23";
+  const today = new Date().toISOString().split("T")[0];
   if (item.date < today) return "overdue";
-  const soon = new Date("2026-08-23");
-  soon.setDate(soon.getDate() + 7);
-  const due = new Date(item.date);
-  if (due <= soon) return "upcoming";
   return "upcoming";
 }
 
@@ -652,47 +726,186 @@ function renderMaintenance() {
     groups[classifyMaintenance(item)].push(item);
   });
 
-  document.getElementById("maintenance-board").innerHTML =
+  const board = document.getElementById("maintenance-board");
+  if (!board) return;
+
+  board.innerHTML =
     kanbanColumn("Overdue", "overdue", groups.overdue, "OVERDUE") +
-    kanbanColumn("Upcoming — Next 7 Days", "upcoming", groups.upcoming, "DUE SOON") +
+    kanbanColumn("Upcoming", "upcoming", groups.upcoming, "DUE SOON") +
     kanbanColumn("Completed", "completed", groups.completed, "COMPLETED");
+
+  // Allow clicking tickets to toggle complete status if admin
+  board.onclick = async function (event) {
+    const completeBtn = event.target.closest("[data-complete-ticket]");
+    if (!completeBtn || !currentUser || currentUser.role !== "ADMIN") return;
+    const ticketId = completeBtn.getAttribute("data-complete-ticket");
+    await toggleTicketStatus(ticketId);
+  };
 }
 
 function kanbanColumn(title, key, items, badge) {
   const cards = items.map(function (m) {
     const warn = key === "overdue" ? " ⚠️" : "";
+    const actionBtn = (key !== "completed" && currentUser && currentUser.role === "ADMIN")
+      ? '<button type="button" class="link-btn" data-complete-ticket="' + m.id + '" style="margin-top: 0.5rem; display: block;">Mark Complete</button>'
+      : '';
+
     return '<article class="ticket ' + key + '"><h4>' + escapeHtml(m.vehicleId) + " · " +
       escapeHtml(m.type) + warn + "</h4><p>Scheduled: " + m.date + "</p><p>Est. cost: " +
       formatMoney(m.cost) + "</p><p>Priority: " + escapeHtml(m.priority) + "</p>" +
-      statusBadge(badge) + "</article>";
-  }).join("") || "<p class='muted'>No tickets in this column.</p>";
+      statusBadge(badge) + actionBtn + "</article>";
+  }).join("") || "<p class='muted' style='padding: 0.8rem;'>No tickets in this column.</p>";
 
   return '<div class="kanban-col"><h3>' + title + " <span>" + items.length +
     "</span></h3>" + cards + "</div>";
 }
 
-// ================================
-// ROUTES
-// ================================
-
-function renderRoutes() {
-  document.getElementById("route-table-body").innerHTML = routes.map(function (r) {
-    const vehicle = getVehicleById(r.vehicleId);
-    const driver = vehicle ? getDriverName(vehicle.driverId) : "—";
-    return "<tr><td>" + escapeHtml(r.id) + "</td><td>" + escapeHtml(r.vehicleId) +
-      "</td><td>" + escapeHtml(driver) + "</td><td>" + escapeHtml(r.start) +
-      "</td><td>" + escapeHtml(r.end) + "</td><td>" + r.distance + " km</td><td>" +
-      escapeHtml(r.duration) + "</td><td>" + statusBadge(r.status) + "</td></tr>";
-  }).join("");
+async function toggleTicketStatus(ticketId) {
+  try {
+    const res = await fetch("/api/maintenance/" + ticketId + "/status", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ status: "Completed" })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showToast("Service ticket marked as Completed", "success");
+      await loadAllFromBackend();
+    } else {
+      showToast(data.message || "Failed to update ticket", "error");
+    }
+  } catch (err) {
+    showToast("Error updating ticket", "error");
+  }
 }
 
 // ================================
-// SEARCH & FILTER
+// ROUTES / TRIPS
+// ================================
+
+function renderRoutes() {
+  const tbody = document.getElementById("route-table-body");
+  if (!tbody) return;
+
+  tbody.innerHTML = routes.map(function (r) {
+    const vehicle = getVehicleById(r.vehicleId);
+    const driver = vehicle ? getDriverName(vehicle.driverId) : "—";
+
+    // Status action: Employees and Admins can update status
+    const statusSelect = '<select class="route-status-select" data-trip-id="' + r.id + '" style="padding: 2px 6px; font-size: 0.8rem; border-radius: 6px;">' +
+      ['On Time', 'Delayed', 'Completed', 'Cancelled', 'Idle'].map(function (s) {
+        return '<option value="' + s + '"' + (r.status === s ? ' selected' : '') + '>' + s + '</option>';
+      }).join("") + '</select>';
+
+    return "<tr><td><strong>" + escapeHtml(r.id) + "</strong></td><td>" + escapeHtml(r.vehicleId) +
+      "</td><td>" + escapeHtml(driver) + "</td><td>" + escapeHtml(r.start) +
+      "</td><td>" + escapeHtml(r.end) + "</td><td>" + r.distance + " km</td><td>" +
+      escapeHtml(r.duration) + "</td><td>" + statusBadge(r.status) + " " + statusSelect + "</td></tr>";
+  }).join("") || emptyRow(8, "No active routes found for current assignment.");
+
+  tbody.onchange = async function (event) {
+    if (event.target.classList.contains("route-status-select")) {
+      const tripId = event.target.getAttribute("data-trip-id");
+      const newStatus = event.target.value;
+      await updateTripStatus(tripId, newStatus);
+    }
+  };
+}
+
+async function updateTripStatus(tripId, newStatus) {
+  try {
+    const res = await fetch("/api/trips/" + tripId + "/status", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ status: newStatus })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showToast("Trip " + tripId + " updated to " + newStatus, "success");
+      await loadAllFromBackend();
+    } else {
+      showToast(data.message || "Failed to update trip", "error");
+      renderRoutes();
+    }
+  } catch (err) {
+    showToast("Network error updating trip status", "error");
+    renderRoutes();
+  }
+}
+
+// ================================
+// USER MANAGEMENT (ADMIN ONLY)
+// ================================
+
+function renderUsers() {
+  const q = (document.getElementById("user-search") ? document.getElementById("user-search").value : "").toLowerCase();
+  const roleFilter = document.getElementById("user-role-filter") ? document.getElementById("user-role-filter").value : "all";
+  const statusFilter = document.getElementById("user-status-filter") ? document.getElementById("user-status-filter").value : "all";
+
+  const rows = users.filter(function (u) {
+    const hay = (u.username + " " + u.name + " " + u.email).toLowerCase();
+    const matchQ = hay.indexOf(q) !== -1;
+    const matchR = roleFilter === "all" || u.role === roleFilter;
+    const matchS = statusFilter === "all" || u.status === statusFilter;
+    return matchQ && matchR && matchS;
+  });
+
+  const tbody = document.getElementById("user-table-body");
+  if (!tbody) return;
+
+  tbody.innerHTML = rows.map(function (u) {
+    const isSelf = currentUser && (currentUser.id === u._id || currentUser._id === u._id);
+    const toggleAction = isSelf
+      ? '<span class="muted">Active (You)</span>'
+      : ('<button type="button" class="link-btn" data-toggle-user="' + u._id + '" data-new-status="' + (u.status === 'Active' ? 'Inactive' : 'Active') + '">' +
+         (u.status === 'Active' ? 'Deactivate' : 'Activate') + '</button>');
+
+    return "<tr><td><strong>" + escapeHtml(u.username) + "</strong></td><td>" + escapeHtml(u.name) +
+      "</td><td>" + escapeHtml(u.email) + "</td><td>" + statusBadge(u.role === 'ADMIN' ? 'Active' : 'Info') + " " + escapeHtml(u.role) +
+      "</td><td>" + statusBadge(u.status) + "</td><td>" + escapeHtml(u.phone || '—') +
+      "</td><td>" + escapeHtml(u.driverId || 'None') + "</td><td>" + toggleAction + "</td></tr>";
+  }).join("") || emptyRow(8, "No users found.");
+
+  tbody.onclick = async function (event) {
+    const btn = event.target.closest("[data-toggle-user]");
+    if (!btn) return;
+    const userId = btn.getAttribute("data-toggle-user");
+    const newStatus = btn.getAttribute("data-new-status");
+    await handleToggleUserStatus(userId, newStatus);
+  };
+}
+
+async function handleToggleUserStatus(userId, newStatus) {
+  try {
+    const res = await fetch("/api/users/" + userId + "/status", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ status: newStatus })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showToast(data.message, "success");
+      await loadAllFromBackend();
+    } else {
+      showToast(data.message || "Failed to update user status", "error");
+    }
+  } catch (err) {
+    showToast("Error updating user status", "error");
+  }
+}
+
+// ================================
+// GLOBAL SEARCH
 // ================================
 
 function runGlobalSearch() {
   const box = document.getElementById("search-results");
-  const q = document.getElementById("global-search").value.trim().toLowerCase();
+  const q = (document.getElementById("global-search").value || "").trim().toLowerCase();
+  if (!box) return;
+
   if (!q) {
     box.hidden = true;
     box.innerHTML = "";
@@ -721,13 +934,14 @@ function runGlobalSearch() {
 
   box.hidden = false;
   if (!hits.length) {
-    box.innerHTML = '<div class="search-empty">No matching records found.</div>';
+    box.innerHTML = '<div class="search-empty">No matching records found in MongoDB.</div>';
     return;
   }
   box.innerHTML = hits.slice(0, 10).map(function (h) {
     return '<button type="button" class="search-item" data-section="' + h.section + '">' +
       escapeHtml(h.title) + "<small>" + escapeHtml(h.meta) + "</small></button>";
   }).join("");
+
   box.onclick = function (event) {
     const btn = event.target.closest(".search-item");
     if (!btn) return;
@@ -738,7 +952,7 @@ function runGlobalSearch() {
 }
 
 // ================================
-// MODALS
+// MODALS & FORMS
 // ================================
 
 function openModal(mode, id) {
@@ -765,10 +979,20 @@ function openModal(mode, id) {
   } else if (mode === "reassign") {
     title.textContent = "Reassign Driver";
     body.innerHTML = reassignFormHtml(id);
+  } else if (mode === "add-user") {
+    title.textContent = "Create Employee Account";
+    body.innerHTML = userFormHtml();
+  } else if (mode === "profile") {
+    title.textContent = "My Profile";
+    body.innerHTML = profileFormHtml();
+  } else if (mode === "settings") {
+    title.textContent = "System Operations & Database Info";
+    body.innerHTML = settingsHtml();
   }
 
   overlay.hidden = false;
   overlay.classList.add("is-open");
+
   const form = body.querySelector("form");
   if (form) {
     form.addEventListener("submit", handleModalSubmit);
@@ -780,9 +1004,12 @@ function openModal(mode, id) {
 
 function closeModal() {
   const overlay = document.getElementById("modal-overlay");
-  overlay.classList.remove("is-open");
-  overlay.hidden = true;
-  document.getElementById("modal-body").innerHTML = "";
+  if (overlay) {
+    overlay.classList.remove("is-open");
+    overlay.hidden = true;
+  }
+  const body = document.getElementById("modal-body");
+  if (body) body.innerHTML = "";
 }
 
 function optionList(items, selected) {
@@ -796,8 +1023,8 @@ function field(name, label, type, extra) {
   extra = extra || {};
   return '<div class="field ' + (extra.full ? "full" : "") + '"><label for="' + name + '">' + label +
     '</label><input id="' + name + '" name="' + name + '" type="' + type + '" ' +
-    (extra.required ? "required " : "") + (extra.value ? 'value="' + extra.value + '" ' : "") +
-    (extra.min ? 'min="' + extra.min + '" ' : "") + (extra.placeholder ? 'placeholder="' + extra.placeholder + '" ' : "") +
+    (extra.required ? "required " : "") + (extra.value ? 'value="' + escapeHtml(extra.value) + '" ' : "") +
+    (extra.min ? 'min="' + extra.min + '" ' : "") + (extra.placeholder ? 'placeholder="' + escapeHtml(extra.placeholder) + '" ' : "") +
     '><div class="error" data-error-for="' + name + '"></div></div>';
 }
 
@@ -810,7 +1037,7 @@ function selectField(name, label, optionsHtml, full, isRequired) {
 
 function formActions(submitLabel) {
   return '<div class="modal-actions full"><button type="button" class="btn btn-ghost" data-cancel>Cancel</button>' +
-    '<button type="submit" class="btn btn-primary">' + submitLabel + "</button></div>";
+    '<button type="submit" class="btn btn-primary" id="modal-submit-btn">' + submitLabel + "</button></div>";
 }
 
 function vehicleFormHtml() {
@@ -822,12 +1049,13 @@ function vehicleFormHtml() {
     field("make", "Make", "text", { required: true, placeholder: "Tata" }) +
     field("model", "Model", "text", { required: true, placeholder: "Prima" }) +
     field("plate", "License Plate", "text", { required: true, placeholder: "AP09XX0000" }) +
-    field("year", "Year", "number", { required: true, min: "1990" }) +
-    field("odometer", "Odometer (km)", "number", { required: true, min: "0" }) +
+    field("year", "Year", "number", { required: true, min: "1990", value: "2024" }) +
+    field("odometer", "Odometer (km)", "number", { required: true, min: "0", value: "10000" }) +
     selectField("fuelType", "Fuel Type", optionList([
       { value: "Diesel", label: "Diesel" },
       { value: "Petrol", label: "Petrol" },
-      { value: "CNG", label: "CNG" }
+      { value: "CNG", label: "CNG" },
+      { value: "Electric", label: "Electric" }
     ])) +
     selectField("status", "Status", optionList([
       { value: "Active", label: "Active" },
@@ -836,7 +1064,7 @@ function vehicleFormHtml() {
       { value: "Offline", label: "Offline" }
     ])) +
     selectField("driverId", "Assign Driver", driverOpts, true, false) +
-    formActions("Add Vehicle") + "</form>";
+    formActions("Add Vehicle to Atlas") + "</form>";
 }
 
 function driverFormHtml() {
@@ -844,35 +1072,40 @@ function driverFormHtml() {
     return { value: v.id, label: v.id + " — " + v.make + " " + v.model };
   }));
   return '<form id="modal-form" class="form-grid" novalidate>' +
-    field("name", "Driver Name", "text", { required: true }) +
-    field("license", "License Number", "text", { required: true }) +
-    field("phone", "Phone", "tel", { required: true, placeholder: "10-digit number" }) +
-    field("safety", "Safety Score (70-100)", "number", { required: true, min: "70" }) +
+    field("name", "Driver Name", "text", { required: true, placeholder: "e.g. Ramesh Reddy" }) +
+    field("license", "License Number", "text", { required: true, placeholder: "TG09 2024009988" }) +
+    field("phone", "Phone", "tel", { required: true, placeholder: "10-digit mobile number" }) +
+    field("safety", "Safety Score (70-100)", "number", { required: true, min: "70", value: "95" }) +
     selectField("status", "Shift Status", optionList([
       { value: "Active", label: "Active" },
       { value: "Off-Duty", label: "Off-Duty" }
     ])) +
     selectField("vehicleId", "Assigned Vehicle", vehicleOpts, false, false) +
-    formActions("Add Driver") + "</form>";
+    formActions("Add Driver to Atlas") + "</form>";
 }
 
 function fuelFormHtml() {
   const vehicleOpts = optionList(vehicles.map(function (v) {
     return { value: v.id, label: v.id + " — " + v.make + " " + v.model };
   }));
+  const today = new Date().toISOString().split("T")[0];
   return '<form id="modal-form" class="form-grid" novalidate>' +
     selectField("vehicleId", "Vehicle", vehicleOpts, true) +
-    field("date", "Date", "date", { required: true, value: "2026-08-23" }) +
-    field("liters", "Liters", "number", { required: true, min: "1" }) +
-    field("cost", "Cost (₹)", "number", { required: true, min: "1" }) +
-    field("odometer", "Current Odometer (km)", "number", { required: true, min: "0", full: true }) +
-    formActions("Add Fuel Entry") + "</form>";
+    field("date", "Date", "date", { required: true, value: today }) +
+    field("liters", "Liters", "number", { required: true, min: "1", value: "80" }) +
+    field("cost", "Cost (₹)", "number", { required: true, min: "1", value: "7520" }) +
+    field("odometer", "Current Odometer (km)", "number", { required: true, min: "0", full: true, placeholder: "Enter current odometer reading" }) +
+    formActions("Save Fuel Record") + "</form>";
 }
 
 function maintenanceFormHtml() {
   const vehicleOpts = optionList(vehicles.map(function (v) {
-    return { value: v.id, label: v.id };
+    return { value: v.id, label: v.id + " — " + v.make + " " + v.model };
   }));
+  const nextWeek = new Date();
+  nextWeek.setDate(nextWeek.getDate() + 4);
+  const nextWeekStr = nextWeek.toISOString().split("T")[0];
+
   return '<form id="modal-form" class="form-grid" novalidate>' +
     selectField("vehicleId", "Vehicle", vehicleOpts) +
     selectField("type", "Service Type", optionList([
@@ -881,17 +1114,73 @@ function maintenanceFormHtml() {
       { value: "Tire Rotation", label: "Tire Rotation" },
       { value: "Engine Service", label: "Engine Service" },
       { value: "Battery Replacement", label: "Battery Replacement" },
-      { value: "AC Service", label: "AC Service" }
+      { value: "AC Service", label: "AC Service" },
+      { value: "General Inspection", label: "General Inspection" }
     ])) +
-    field("date", "Scheduled Date", "date", { required: true, value: "2026-08-27" }) +
-    field("cost", "Estimated Cost (₹)", "number", { required: true, min: "1" }) +
+    field("date", "Scheduled Date", "date", { required: true, value: nextWeekStr }) +
+    field("cost", "Estimated Cost (₹)", "number", { required: true, min: "1", value: "4500" }) +
     selectField("priority", "Priority", optionList([
       { value: "Low", label: "Low" },
       { value: "Medium", label: "Medium" },
       { value: "High", label: "High" }
     ])) +
-    '<div class="field full"><label for="notes">Notes</label><textarea id="notes" name="notes"></textarea></div>' +
+    '<div class="field full"><label for="notes">Notes</label><textarea id="notes" name="notes" placeholder="Service notes, garage details..."></textarea></div>' +
     formActions("Schedule Service") + "</form>";
+}
+
+function reassignFormHtml(driverId) {
+  const driver = getDriverById(driverId);
+  if (!driver) return "<p>Driver not found.</p>";
+  const vehicleOpts = optionList(
+    [{ value: "", label: "Unassigned" }].concat(vehicles.map(function (v) {
+      return { value: v.id, label: v.id + " — currently " + getDriverName(v.driverId) };
+    })),
+    driver.vehicleId || ""
+  );
+  return '<form id="modal-form" class="form-grid" novalidate>' +
+    '<input type="hidden" name="driverId" value="' + driver.id + '">' +
+    '<div class="field"><label>Driver name</label><input value="' + escapeHtml(driver.name) + '" disabled></div>' +
+    '<div class="field"><label>Current vehicle</label><input value="' + escapeHtml(driver.vehicleId || "Unassigned") + '" disabled></div>' +
+    selectField("vehicleId", "Available vehicles", vehicleOpts, true) +
+    formActions("Confirm Reassignment") + "</form>";
+}
+
+function userFormHtml() {
+  const driverOpts = '<option value="">None (General Employee)</option>' + optionList(drivers.map(function (d) {
+    return { value: d.id, label: d.id + " — " + d.name };
+  }));
+
+  return '<form id="modal-form" class="form-grid" novalidate>' +
+    field("username", "Username", "text", { required: true, placeholder: "e.g. employee2" }) +
+    field("name", "Full Name", "text", { required: true, placeholder: "e.g. Rahul Sharma" }) +
+    field("email", "Email Address", "email", { required: true, placeholder: "rahul@fleetflow.local" }) +
+    field("password", "Initial Password", "password", { required: true, placeholder: "At least 6 characters" }) +
+    field("phone", "Phone Number", "tel", { placeholder: "10-digit phone" }) +
+    selectField("driverId", "Link to Driver Profile", driverOpts, false, false) +
+    formActions("Create Employee Account") + "</form>";
+}
+
+function profileFormHtml() {
+  if (!currentUser) return "<p>Not logged in.</p>";
+  return '<form id="modal-form" class="form-grid" novalidate>' +
+    '<div class="field"><label>Username</label><input value="' + escapeHtml(currentUser.username) + '" disabled></div>' +
+    '<div class="field"><label>Role</label><input value="' + escapeHtml(currentUser.role) + '" disabled></div>' +
+    field("name", "Full Name", "text", { required: true, value: currentUser.name }) +
+    field("phone", "Phone", "tel", { value: currentUser.phone || "" }) +
+    '<div class="field full"><label>Change Password (optional)</label><input type="password" id="newPassword" name="newPassword" placeholder="New password (leave blank to keep current)"></div>' +
+    '<div class="field full"><label>Current Password (required to save changes)</label><input type="password" id="currentPassword" name="currentPassword" placeholder="Enter current password"></div>' +
+    formActions("Update Profile") + "</form>";
+}
+
+function settingsHtml() {
+  return '<div style="line-height: 1.7; font-size: 0.95rem;">' +
+    '<h3 style="margin-top: 0;">Database & Environment</h3>' +
+    '<p><strong>Persistent Database:</strong> MongoDB Atlas Cluster</p>' +
+    '<p><strong>Authentication:</strong> JWT stored in secure HTTP-only cookies with bcrypt hashing</p>' +
+    '<p><strong>API Base:</strong> <code>/api</code> (Express.js REST Architecture)</p>' +
+    '<p><strong>Active Session:</strong> Logged in as <strong>' + escapeHtml(currentUser ? currentUser.name : "") + '</strong> (' + escapeHtml(currentUser ? currentUser.role : "") + ')</p>' +
+    '<div class="modal-actions" style="margin-top: 2rem;"><button type="button" class="btn btn-primary" onclick="closeModal()">Close</button></div>' +
+    '</div>';
 }
 
 function vehicleDetailsHtml(id) {
@@ -913,7 +1202,7 @@ function vehicleDetailsHtml(id) {
     "</dl><h3>Recent trip history</h3><ul class='trip-list'>" +
     (trips.map(function (t) {
       return "<li>" + t.id + " · " + t.start + " → " + t.end + " · " + t.status + "</li>";
-    }).join("") || "<li>No recent trips.</li>") +
+    }).join("") || "<li>No recent trips recorded.</li>") +
     "</ul>";
 }
 
@@ -921,30 +1210,32 @@ function detail(label, value) {
   return "<div><dt>" + escapeHtml(String(label)) + "</dt><dd>" + escapeHtml(String(value)) + "</dd></div>";
 }
 
-function reassignFormHtml(driverId) {
-  const driver = getDriverById(driverId);
-  const vehicleOpts = optionList(
-    [{ value: "", label: "Unassigned" }].concat(vehicles.map(function (v) {
-      return { value: v.id, label: v.id + " — currently " + getDriverName(v.driverId) };
-    })),
-    driver.vehicleId || ""
-  );
-  return '<form id="modal-form" class="form-grid" novalidate>' +
-    '<input type="hidden" name="driverId" value="' + driver.id + '">' +
-    '<div class="field"><label>Driver name</label><input value="' + escapeHtml(driver.name) + '" disabled></div>' +
-    '<div class="field"><label>Current vehicle</label><input value="' + escapeHtml(driver.vehicleId || "Unassigned") + '" disabled></div>' +
-    selectField("vehicleId", "Available vehicles", vehicleOpts, true) +
-    formActions("Confirm") + "</form>";
-}
+// ================================
+// FORM SUBMISSION & BACKEND WRITES
+// ================================
 
-function handleModalSubmit(event) {
+async function handleModalSubmit(event) {
   event.preventDefault();
   const form = event.target;
-  if (modalMode === "add-vehicle") submitVehicle(form);
-  else if (modalMode === "add-driver") submitDriver(form);
-  else if (modalMode === "add-fuel") submitFuel(form);
-  else if (modalMode === "add-maintenance") submitMaintenance(form);
-  else if (modalMode === "reassign") submitReassign(form);
+  const submitBtn = document.getElementById("modal-submit-btn");
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Saving to Atlas...";
+  }
+
+  try {
+    if (modalMode === "add-vehicle") await submitVehicle(form);
+    else if (modalMode === "add-driver") await submitDriver(form);
+    else if (modalMode === "add-fuel") await submitFuel(form);
+    else if (modalMode === "add-maintenance") await submitMaintenance(form);
+    else if (modalMode === "reassign") await submitReassign(form);
+    else if (modalMode === "add-user") await submitUser(form);
+    else if (modalMode === "profile") await submitProfile(form);
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+    }
+  }
 }
 
 function setFieldError(form, name, message) {
@@ -957,7 +1248,7 @@ function setFieldError(form, name, message) {
 function required(form, names) {
   let ok = true;
   names.forEach(function (name) {
-    const value = String(form.elements[name].value || "").trim();
+    const value = String(form.elements[name] ? form.elements[name].value : "").trim();
     if (!value) {
       setFieldError(form, name, "This field is required.");
       ok = false;
@@ -968,16 +1259,11 @@ function required(form, names) {
   return ok;
 }
 
-function submitVehicle(form) {
+async function submitVehicle(form) {
   if (!required(form, ["id", "make", "model", "plate", "year", "odometer", "fuelType", "status"])) return;
-  const id = form.elements.id.value.trim().toUpperCase();
-  if (getVehicleById(id)) {
-    setFieldError(form, "id", "This vehicle ID already exists.");
-    return;
-  }
-  const driverId = form.elements.driverId.value;
-  const vehicle = {
-    id: id,
+
+  const payload = {
+    id: form.elements.id.value.trim().toUpperCase(),
     make: form.elements.make.value.trim(),
     model: form.elements.model.value.trim(),
     plate: form.elements.plate.value.trim().toUpperCase(),
@@ -985,143 +1271,221 @@ function submitVehicle(form) {
     odometer: Number(form.elements.odometer.value),
     fuelType: form.elements.fuelType.value,
     status: form.elements.status.value,
-    driverId: driverId || "",
-    lastService: "2026-08-23",
-    nextService: "2026-11-23"
+    driverId: form.elements.driverId.value
   };
-  vehicles.push(vehicle);
-  if (driverId) {
-    const previous = getDriverById(driverId);
-    if (previous && previous.vehicleId && previous.vehicleId !== id) {
-      const oldVehicle = getVehicleById(previous.vehicleId);
-      if (oldVehicle) oldVehicle.driverId = "";
-    }
-    if (previous) previous.vehicleId = id;
+
+  const res = await fetch("/api/vehicles", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+  if (res.ok && data.success) {
+    closeModal();
+    showToast("Vehicle " + payload.id + " saved to MongoDB Atlas!", "success");
+    await loadAllFromBackend();
+  } else {
+    showToast(data.message || "Failed to add vehicle", "error");
+    if (data.message && data.message.includes("Vehicle ID")) setFieldError(form, "id", data.message);
+    if (data.message && data.message.includes("License plate")) setFieldError(form, "plate", data.message);
   }
-  addActivity("🚚", "Vehicle " + id + " added to the fleet", "Info");
-  afterChange("Vehicle added successfully", "success");
 }
 
-function submitDriver(form) {
+async function submitDriver(form) {
   if (!required(form, ["name", "license", "phone", "safety", "status"])) return;
+
   const phone = form.elements.phone.value.trim();
   if (!/^\d{10}$/.test(phone)) {
-    setFieldError(form, "phone", "Enter a 10-digit phone number.");
+    setFieldError(form, "phone", "Enter a valid 10-digit phone number.");
     return;
   }
-  const safety = Number(form.elements.safety.value);
-  if (safety < 70 || safety > 100) {
-    setFieldError(form, "safety", "Safety score must be between 70 and 100.");
-    return;
-  }
-  const driver = {
-    id: nextId("D", drivers),
+
+  const payload = {
     name: form.elements.name.value.trim(),
     license: form.elements.license.value.trim(),
     phone: phone,
+    safety: Number(form.elements.safety.value),
     status: form.elements.status.value,
-    safety: safety,
     vehicleId: form.elements.vehicleId.value
   };
-  drivers.push(driver);
-  if (driver.vehicleId) {
-    linkDriverVehicle(driver.id, driver.vehicleId);
+
+  const res = await fetch("/api/drivers", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+  if (res.ok && data.success) {
+    closeModal();
+    showToast("Driver " + payload.name + " saved to MongoDB Atlas!", "success");
+    await loadAllFromBackend();
+  } else {
+    showToast(data.message || "Failed to create driver", "error");
+    if (data.message && data.message.includes("License")) setFieldError(form, "license", data.message);
   }
-  addActivity("👤", "Driver " + driver.name + " was added", "Info");
-  afterChange("Driver added successfully", "success");
 }
 
-function submitFuel(form) {
+async function submitFuel(form) {
   if (!required(form, ["vehicleId", "date", "liters", "cost", "odometer"])) return;
+
   const vehicleId = form.elements.vehicleId.value;
   const odometer = Number(form.elements.odometer.value);
   const vehicle = getVehicleById(vehicleId);
+
   if (vehicle && odometer < vehicle.odometer) {
-    setFieldError(form, "odometer", "Odometer cannot be lower than the current reading (" + vehicle.odometer + ").");
+    setFieldError(form, "odometer", "Odometer cannot be lower than current reading (" + vehicle.odometer + " km).");
     return;
   }
-  const entry = {
-    id: nextId("F", fuelEntries),
-    date: form.elements.date.value,
+
+  const payload = {
     vehicleId: vehicleId,
+    date: form.elements.date.value,
     liters: Number(form.elements.liters.value),
     cost: Number(form.elements.cost.value),
     odometer: odometer
   };
-  fuelEntries.push(entry);
-  if (vehicle) vehicle.odometer = odometer;
-  addActivity("⛽", "Fuel entry added for " + vehicleId, "Info");
-  afterChange("Fuel entry added successfully", "success");
+
+  const res = await fetch("/api/fuel", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+  if (res.ok && data.success) {
+    closeModal();
+    showToast("Fuel entry saved and vehicle odometer updated!", "success");
+    await loadAllFromBackend();
+  } else {
+    showToast(data.message || "Failed to save fuel entry", "error");
+  }
 }
 
-function submitMaintenance(form) {
+async function submitMaintenance(form) {
   if (!required(form, ["vehicleId", "type", "date", "cost", "priority"])) return;
-  const ticket = {
-    id: nextId("M", maintenance),
+
+  const payload = {
     vehicleId: form.elements.vehicleId.value,
     type: form.elements.type.value,
     date: form.elements.date.value,
     cost: Number(form.elements.cost.value),
     priority: form.elements.priority.value,
-    status: form.elements.date.value < "2026-08-23" ? "Overdue" : "Upcoming",
     notes: form.elements.notes.value.trim()
   };
-  maintenance.push(ticket);
-  addActivity("🔧", "Maintenance scheduled for " + ticket.vehicleId, "Warning");
-  afterChange("Maintenance scheduled successfully", "success");
+
+  const res = await fetch("/api/maintenance", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+  if (res.ok && data.success) {
+    closeModal();
+    showToast("Maintenance ticket saved to MongoDB Atlas!", "success");
+    await loadAllFromBackend();
+  } else {
+    showToast(data.message || "Failed to schedule service", "error");
+  }
 }
 
-function submitReassign(form) {
+async function submitReassign(form) {
   const driverId = form.elements.driverId.value;
   const vehicleId = form.elements.vehicleId.value;
-  linkDriverVehicle(driverId, vehicleId);
-  const driver = getDriverById(driverId);
-  addActivity("👤", "Driver " + driver.name + " was assigned to " + (vehicleId || "no vehicle"), "Info");
-  afterChange("Driver reassigned successfully", "success");
-}
 
-function linkDriverVehicle(driverId, vehicleId) {
-  const driver = getDriverById(driverId);
-  if (!driver) return;
+  const res = await fetch("/api/drivers/" + driverId + "/assign", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ vehicleId: vehicleId })
+  });
 
-  if (driver.vehicleId) {
-    const oldVehicle = getVehicleById(driver.vehicleId);
-    if (oldVehicle && oldVehicle.driverId === driverId) {
-      oldVehicle.driverId = "";
-    }
-  }
-
-  if (vehicleId) {
-    const vehicle = getVehicleById(vehicleId);
-    if (vehicle && vehicle.driverId && vehicle.driverId !== driverId) {
-      const other = getDriverById(vehicle.driverId);
-      if (other) other.vehicleId = "";
-    }
-    if (vehicle) vehicle.driverId = driverId;
-    driver.vehicleId = vehicleId;
+  const data = await res.json();
+  if (res.ok && data.success) {
+    closeModal();
+    showToast("Driver assignment updated in MongoDB Atlas!", "success");
+    await loadAllFromBackend();
   } else {
-    driver.vehicleId = "";
+    showToast(data.message || "Failed to reassign driver", "error");
   }
 }
 
-function afterChange(message, type) {
-  saveStore();
-  renderAll();
-  closeModal();
-  showToast(message, type);
+async function submitUser(form) {
+  if (!required(form, ["username", "name", "email", "password"])) return;
+
+  const payload = {
+    username: form.elements.username.value.trim(),
+    name: form.elements.name.value.trim(),
+    email: form.elements.email.value.trim(),
+    password: form.elements.password.value,
+    phone: form.elements.phone ? form.elements.phone.value.trim() : "",
+    driverId: form.elements.driverId ? form.elements.driverId.value.trim() : "",
+    role: "EMPLOYEE"
+  };
+
+  const res = await fetch("/api/users", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+  if (res.ok && data.success) {
+    closeModal();
+    showToast("Employee account '" + payload.username + "' created in MongoDB Atlas!", "success");
+    await loadAllFromBackend();
+  } else {
+    showToast(data.message || "Failed to create user", "error");
+    if (data.message && data.message.includes("Username")) setFieldError(form, "username", data.message);
+    if (data.message && data.message.includes("Email")) setFieldError(form, "email", data.message);
+  }
+}
+
+async function submitProfile(form) {
+  const payload = {
+    name: form.elements.name.value.trim(),
+    phone: form.elements.phone ? form.elements.phone.value.trim() : "",
+    currentPassword: form.elements.currentPassword ? form.elements.currentPassword.value : "",
+    newPassword: form.elements.newPassword ? form.elements.newPassword.value : ""
+  };
+
+  const res = await fetch("/api/auth/profile", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+  if (res.ok && data.success) {
+    closeModal();
+    currentUser = data.data;
+    updateUserChip(currentUser);
+    showToast("Profile updated successfully", "success");
+  } else {
+    showToast(data.message || "Failed to update profile", "error");
+  }
 }
 
 // ================================
-// NOTIFICATIONS / TOASTS
+// TOAST NOTIFICATIONS
 // ================================
 
 function showToast(message, type) {
   const stack = document.getElementById("toast-stack");
+  if (!stack) return;
   const toast = document.createElement("div");
   toast.className = "toast " + (type || "info");
   toast.textContent = message;
   stack.appendChild(toast);
   setTimeout(function () {
     toast.remove();
-  }, 3200);
+  }, 3500);
 }

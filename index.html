@@ -51,6 +51,10 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 14.5 9 2.5 2.5 0 0 1 12 11.5z"/></svg>
           <span>Routes</span>
         </button>
+        <button class="nav-item admin-only" data-section="users" id="nav-users">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+          <span>Users</span>
+        </button>
       </nav>
 
       <div class="sidebar-foot">
@@ -271,6 +275,43 @@
                 </tr>
               </thead>
               <tbody id="route-table-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="page admin-only" id="page-users" hidden>
+          <div class="action-bar">
+            <label class="sr-only" for="user-search">Search users</label>
+            <input type="search" id="user-search" placeholder="Search by name, username or email...">
+            <label class="sr-only" for="user-role-filter">Filter by role</label>
+            <select id="user-role-filter">
+              <option value="all">All roles</option>
+              <option value="ADMIN">Admin</option>
+              <option value="EMPLOYEE">Employee</option>
+            </select>
+            <label class="sr-only" for="user-status-filter">Filter by status</label>
+            <select id="user-status-filter">
+              <option value="all">All statuses</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+            <button class="btn btn-primary" id="add-user-btn" type="button">+ Add Employee</button>
+          </div>
+          <div class="table-wrap card">
+            <table>
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Full Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Phone</th>
+                  <th>Driver ID</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="user-table-body"></tbody>
             </table>
           </div>
         </section>
