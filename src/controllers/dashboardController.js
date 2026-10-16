@@ -49,7 +49,7 @@ const getDashboardStats = async (req, res, next) => {
             organizationId: orgId,
             vehicleId: { $in: assignedVehicleIds },
             status: { $ne: "Completed" },
-            date: { $lt: today }
+            date: { $lt: today } // today is YYYY-MM-DD string; lexicographic comparison is correct for this format
           })
         : 0;
 
@@ -117,7 +117,7 @@ const getDashboardStats = async (req, res, next) => {
       MaintenanceRecord.countDocuments({
         organizationId: orgId,
         status: { $ne: "Completed" },
-        date: { $lt: today }
+        date: { $lt: today } // today is YYYY-MM-DD string; lexicographic comparison is correct for this format
       }),
       FuelEntry.find({ organizationId: orgId, date: { $regex: `^${currentMonth}` } }, "cost")
     ]);

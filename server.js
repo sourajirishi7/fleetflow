@@ -24,8 +24,19 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Security & Parsing Middleware
+// Restrict CORS to known origins; reflect any origin only in development
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
+  : ["http://localhost:5000", "http://127.0.0.1:5000"];
+
 app.use(cors({
-  origin: true,
+  origin: (origin, callback) => {
+    // Allow same-origin requests (no Origin header) and configured origins
+    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== "production") {
+      return callback(null, true);
+    }
+    callback(new Error(`CORS: Origin '${origin}' not allowed`));
+  },
   credentials: true
 }));
 app.use(express.json());

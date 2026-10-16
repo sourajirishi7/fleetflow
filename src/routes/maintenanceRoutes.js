@@ -19,6 +19,6 @@ router.route("/")
 router.route("/:id")
   .delete(requireAdmin, deleteMaintenanceRecord);
 
-router.patch("/:id/status", requireAdmin, updateMaintenanceStatus);
+router.patch("/:id/status", updateMaintenanceStatus);
 
 module.exports = router;

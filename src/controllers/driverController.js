@@ -232,9 +232,6 @@ const createDriver = async (req, res, next) => {
 
     return successResponse(res, newDriver, "Driver created successfully", 201);
   } catch (err) {
-    if (linkedUserId) {
-      await User.findByIdAndDelete(linkedUserId).catch(() => {});
-    }
     next(err);
   }
 };

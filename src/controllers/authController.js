@@ -61,10 +61,12 @@ const registerAdmin = async (req, res, next) => {
 
     const isCallerAdmin = caller && caller.role === "ADMIN";
     const totalAdmins = await User.countDocuments({ role: "ADMIN" });
+    const isPublicRegistrationAllowed = process.env.ALLOW_PUBLIC_REGISTRATION === "true";
 
     // 4. Authorization check:
-    // Only an authenticated ADMIN or a caller providing the valid server-side INITIAL_SETUP_KEY may register
-    if (!isCallerAdmin && !hasValidKey) {
+    // Only an authenticated ADMIN, a caller providing the valid server-side INITIAL_SETUP_KEY,
+    // or an environment explicitly permitting public registration may register
+    if (!isCallerAdmin && !hasValidKey && !isPublicRegistrationAllowed) {
       if (totalAdmins > 0) {
         return errorResponse(
           res,

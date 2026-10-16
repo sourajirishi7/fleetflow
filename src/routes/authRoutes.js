@@ -17,7 +17,7 @@ const loginLimiter = rateLimit({
   legacyHeaders: false
 });
 
-router.post("/register-admin", registerAdmin);
+router.post("/register-admin", loginLimiter, registerAdmin);
 router.post("/login", loginLimiter, login);
 router.post("/logout", logout);
 router.get("/me", requireAuth, getMe);

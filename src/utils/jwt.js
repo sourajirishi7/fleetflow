@@ -3,7 +3,14 @@ const jwt = require("jsonwebtoken");
 const COOKIE_NAME = "fleetflow_token";
 
 const getJwtSecret = () => {
-  return process.env.JWT_SECRET || "default_development_secret_fleetflow_2026";
+  if (!process.env.JWT_SECRET) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("JWT_SECRET environment variable must be set in production");
+    }
+    // Development fallback only — never use in production
+    return "default_development_secret_fleetflow_2026";
+  }
+  return process.env.JWT_SECRET;
 };
 
 /**
@@ -44,10 +51,11 @@ const sendTokenResponse = (res, user, statusCode = 200, message = "Authenticatio
 
   res.cookie(COOKIE_NAME, token, cookieOptions);
 
-  return res.status(statusCode).json({
+  // Only expose raw token in non-production environments (API testing convenience)
+  const responseBody = {
     success: true,
     message,
-    token, // Provided for API testing / authorization headers as well
+    ...(isProduction ? {} : { token }), // omit token from body in production
     user: {
       id: user._id,
       username: user.username,
@@ -58,7 +66,9 @@ const sendTokenResponse = (res, user, statusCode = 200, message = "Authenticatio
       phone: user.phone,
       driverId: user.driverId
     }
-  });
+  };
+
+  return res.status(statusCode).json(responseBody);
 };
 
 /**

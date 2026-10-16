@@ -968,8 +968,7 @@ function renderRoutes() {
 // SECTION 14 (CONTINUED): INTERACTIVE ROUTE MAP & HIGHWAY GEOMETRY
 // ============================================================================
 
-// GPS Integration Point Hook (For future telematics feed)
-const vehicleGpsFeed = null;
+// GPS Integration Point Hook (For future telematics feed — not yet implemented)
 
 function initOrUpdateRouteMap() {
   if (typeof L === "undefined") {
@@ -1230,7 +1229,7 @@ function renderUsers() {
          (u.status === 'Active' ? 'Deactivate' : 'Activate') + '</button>');
 
     return "<tr><td><strong>" + escapeHtml(u.username) + "</strong></td><td>" + escapeHtml(u.name) +
-      "</td><td>" + escapeHtml(u.email) + "</td><td>" + statusBadge(u.role === 'ADMIN' ? 'Active' : 'Info') + " " + escapeHtml(u.role) +
+      "</td><td>" + escapeHtml(u.email) + "</td><td>" + statusBadge(u.role === 'ADMIN' ? 'Warning' : 'Info') + " " + escapeHtml(u.role) +
       "</td><td>" + statusBadge(u.status) + "</td><td>" + escapeHtml(u.phone || '—') +
       "</td><td>" + escapeHtml(u.driverId || 'None') + "</td><td>" + toggleAction + "</td></tr>";
   }).join("") || emptyRow(8, "No users found.");

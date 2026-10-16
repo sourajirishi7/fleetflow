@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login — FleetFlow Operations Console</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%234f46e5'/><path d='M4 20h2v2H4zm22 0h2v2h-2zM3 14h26v8H3z' fill='%23fff'/><path d='M3 14l3-6h18l4 6z' fill='%23a5b4fc'/></svg>">
+  <link rel="stylesheet" href="style.css?v=2.2">
   <style>
     /* Scoped Login Styles matching FleetFlow Theme */
     .login-viewport {
@@ -454,6 +455,16 @@
             </div>
           </div>
 
+          <div class="form-group">
+            <label for="reg-setup-key">Setup Authorization Key <span style="font-weight: normal; color: var(--muted); font-size: 0.85rem;">(Required)</span></label>
+            <div class="input-wrapper">
+              <input type="password" id="reg-setup-key" name="setupKey" placeholder="Enter server INITIAL_SETUP_KEY" autocomplete="off">
+            </div>
+            <small style="color: var(--muted); font-size: 0.78rem; display: block; margin-top: 4px; line-height: 1.35;">
+              Security key configured in server <code>.env</code> (<code>INITIAL_SETUP_KEY</code>). Required to prevent unauthorized organization creation.
+            </small>
+          </div>
+
           <button type="submit" class="login-submit-btn" id="reg-submit-btn">
             <span id="reg-btn-text">Create Organization & Admin</span>
             <div class="spinner" id="reg-btn-spinner" hidden></div>
@@ -467,6 +478,13 @@
             <span class="hint-chip" title="Click to fill Employee" onclick="fillCreds('employee1', 'Employee@12345')">Employee: employee1 / Employee@12345</span>
           </div>
         </div>
+
+        <div class="demo-hint" id="reg-hint-box" hidden>
+          <strong>Setup Key (Development):</strong>
+          <div class="hint-badges">
+            <span class="hint-chip" title="Click to fill default setup key" onclick="fillSetupKey('fleetflow-enterprise-setup-2026')">Fill Default Setup Key</span>
+          </div>
+        </div>
       </section>
 
     </div>
@@ -477,6 +495,11 @@
     function fillCreds(u, p) {
       document.getElementById("username").value = u;
       document.getElementById("password").value = p;
+    }
+
+    function fillSetupKey(k) {
+      const el = document.getElementById("reg-setup-key");
+      if (el) el.value = k;
     }
 
     document.addEventListener("DOMContentLoaded", function () {
@@ -497,6 +520,7 @@
       const headingEl = document.getElementById("login-heading");
       const subheadingEl = document.getElementById("login-subheading");
       const demoHintBox = document.getElementById("demo-hint-box");
+      const regHintBox = document.getElementById("reg-hint-box");
 
       // Tab Switching
       tabSignIn.addEventListener("click", function () {
@@ -509,6 +533,7 @@
         headingEl.textContent = "Welcome Back";
         subheadingEl.textContent = "Sign in to your Fleet Management account.";
         if (demoHintBox) demoHintBox.hidden = false;
+        if (regHintBox) regHintBox.hidden = true;
         alertBox.hidden = true;
       });
 
@@ -522,6 +547,7 @@
         headingEl.textContent = "New Organization Setup";
         subheadingEl.textContent = "Initialize your fleet organization and master administrator.";
         if (demoHintBox) demoHintBox.hidden = true;
+        if (regHintBox) regHintBox.hidden = false;
         alertBox.hidden = true;
       });
 
@@ -601,6 +627,7 @@
         const username = document.getElementById("reg-username").value.trim();
         const email = document.getElementById("reg-email").value.trim();
         const password = document.getElementById("reg-password").value;
+        const setupKey = document.getElementById("reg-setup-key") ? document.getElementById("reg-setup-key").value.trim() : "";
 
         if (!organizationName || !name || !username || !email || !password) {
           showAlert("Please fill in all required registration fields.");
@@ -626,7 +653,8 @@
               name,
               username,
               email,
-              password
+              password,
+              ...(setupKey ? { setupKey } : {})
             })
           });
 
